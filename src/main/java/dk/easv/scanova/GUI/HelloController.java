@@ -1,4 +1,4 @@
-package dk.easv.scanova;
+package dk.easv.scanova.GUI;
 
 import javafx.fxml.FXML;
 import javafx.scene.control.Label;
