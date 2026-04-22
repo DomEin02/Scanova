@@ -1,4 +1,4 @@
-package dk.easv.scanova.GUI;
+package dk.easv.scanova;
 
 import javafx.application.Application;
 import javafx.fxml.FXMLLoader;
