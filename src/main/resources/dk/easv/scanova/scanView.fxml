@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.image.*?>
+
+<BorderPane xmlns:fx="http://javafx.com/fxml"
+            fx:controller="dk.easv.scanova.GUI.ScanViewController"
+            prefHeight="400.0" prefWidth="600.0">
+
+
+<!-- TOP TOOLBAR -->
+<top>
+    <ToolBar>
+        <Button text="Start Scan" />
+        <Button text="Rotate ⟳" />
+        <Button text="Rotate ⟲" />
+        <Separator />
+        <Button text="Export TIFF" />
+        <Separator />
+        <Label text="Profile:" />
+        <ComboBox prefWidth="150" />
+        <Label text="Box ID:" />
+        <TextField prefWidth="100" />
+    </ToolBar>
+</top>
+
+<!-- LEFT SIDEBAR (FILES / PAGES) -->
+<left>
+    <VBox prefWidth="200">
+        <Label text="Files (Pages)" style="-fx-font-weight: bold;" />
+        <ListView fx:id="fileListView" VBox.vgrow="ALWAYS" />
+        <HBox spacing="5">
+            <Button text="↑" />
+            <Button text="↓" />
+            <Button text="Delete" />
+        </HBox>
+    </VBox>
+</left>
+
+<!-- CENTER (IMAGE PREVIEW) -->
+<center>
+    <StackPane>
+        <ImageView fx:id="imagePreview"
+                   preserveRatio="true"
+                   fitWidth="800"
+                   fitHeight="600" />
+    </StackPane>
+</center>
+
+<!-- RIGHT SIDEBAR (DOCUMENTS / BARCODE SPLIT) -->
+<right>
+    <VBox prefWidth="200">
+        <Label text="Documents" style="-fx-font-weight: bold;" />
+        <ListView fx:id="documentListView" VBox.vgrow="ALWAYS" />
+        <Button text="New Document (Barcode)" />
+    </VBox>
+</right>
+
+<!-- BOTTOM STATUS BAR -->
+<bottom>
+    <HBox spacing="20" style="-fx-padding: 5;">
+        <Label text="Scans: 0" fx:id="scanCountLabel"/>
+        <Label text="Status: Ready" fx:id="statusLabel"/>
+    </HBox>
+</bottom>
+
+</BorderPane>
