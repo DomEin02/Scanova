@@ -22,7 +22,6 @@ public class ScanManager {
     private int documentCounter  = 0;
     private int totalAvailable   = 0;
 
-
      // Call this when the user starts a new scan session.
      // Fetches the total count from the API and resets all counters.
     public void initSession() throws Exception {
