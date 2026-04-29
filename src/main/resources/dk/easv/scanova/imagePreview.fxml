@@ -9,8 +9,8 @@
       alignment="CENTER">
 
     <ToolBar>
-        <Button text="⟲" onAction="#rotateLeft"/>
-        <Button text="⟳" onAction="#rotateRight"/>
+        <Button text="Rotate ⟲" onAction="#rotateLeft"/>
+        <Button text="Rotate ⟳" onAction="#rotateRight"/>
     </ToolBar>
 
     <ImageView fx:id="imageView"
