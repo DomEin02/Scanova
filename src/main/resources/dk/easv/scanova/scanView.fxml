@@ -13,8 +13,7 @@
             <Button text="Start Scan" fx:id="startScanButton" onAction="#onStartScan"/>
             <Button text="Stop" fx:id="stopButton"/>
             <Separator />
-            <Button text="Rotate ⟳" fx:id="rotateRightButton"/>
-            <Button text="Rotate ⟲" fx:id="rotateLeftButton"/>
+
             <Separator />
             <Button text="Export TIFF" fx:id="exportButton"/>
             <Separator />
@@ -50,12 +49,7 @@
 
     <!-- CENTER (IMAGE PREVIEW) -->
     <center>
-        <StackPane style="-fx-background-color: #2c2c2c;">
-            <ImageView fx:id="imagePreview"
-                       preserveRatio="true"
-                       fitWidth="800"
-                       fitHeight="700"/>
-        </StackPane>
+        <fx:include source="imagePreview.fxml" fx:id="imagePreviewComponent"/>
     </center>
 
     <!-- BOTTOM STATUS BAR -->

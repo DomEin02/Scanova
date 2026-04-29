@@ -24,8 +24,6 @@ import java.util.List;
 public class ScanViewController {
 
     @FXML
-    private ImageView imagePreview;
-    @FXML
     private Label scanCountLabel;
     @FXML
     private Label statusLabel;
@@ -112,7 +110,7 @@ public class ScanViewController {
                                             new ByteArrayInputStream(file.getImageData()));
                                     if (buffered != null) {
                                         Image image = SwingFXUtils.toFXImage(buffered, null);
-                                        imagePreview.setImage(image);
+                                        imagePreviewComponentController.setImage(image);
                                     }
                                 } catch (Exception e) {
                                     statusLabel.setText("Status: Could not display image — " + e.getMessage());
