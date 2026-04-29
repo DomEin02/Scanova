@@ -1,19 +1,19 @@
 package dk.easv.scanova.GUI;
 
-import javafx.fxml.FXMLLoader;
-import javafx.scene.Scene;
+import dk.easv.scanova.SceneManager;
+import javafx.application.Application;
 import javafx.stage.Stage;
 
-public class ScanovaApp extends javafx.application.Application {
+public class ScanovaApp extends Application {
 
     @Override
-    public void start(Stage stage) throws Exception {
-        FXMLLoader loader = new FXMLLoader(getClass().getResource("/dk/easv/scanova/scanView.fxml"));
+    public void start(Stage stage) {
+        SceneManager.setStage(stage);
 
-        Scene scene = new Scene(loader.load(), 1200, 800);
+        SceneManager.load("loginView.fxml");
 
         stage.setTitle("Scanova");
-        stage.setScene(scene);
+        stage.setResizable(false); // keep login screen fixed size
         stage.show();
     }
 

@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.PasswordField?>
+<?import javafx.scene.control.TextField?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.StackPane?>
+<?import javafx.scene.layout.VBox?>
+
+
+<StackPane maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="400.0" prefWidth="600.0" style="-fx-background-color: #F5F5F5;" xmlns="http://javafx.com/javafx/26" xmlns:fx="http://javafx.com/fxml/1" fx:controller="dk.easv.scanova.GUI.LoginController">
+   <children>
+      <VBox maxWidth="360.0" prefHeight="200.0" prefWidth="100.0" style="-fx-background-color: #FFFFFF; -fx-background-radius: 6; -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.12), 16, 0, 0, 4); -fx-spacing: 0;">
+         <children>
+            <HBox prefHeight="6.0" prefWidth="200.0" style="-fx-background-color: #24C79F; -fx-background-radius: 6 6 0 0;" />
+            <VBox alignment="CENTER_LEFT" prefHeight="200.0" prefWidth="100.0" style="-fx-padding: 36 30 30 30; -fx-spacing: 0;">
+               <children>
+                  <Label style="-fx-font-size: 21; -fx-font-weight: 700; -fx-text-fill: #2D3D4F;" text="Scanova" />
+                  <Label style="-fx-font-size: 10; -fx-text-fill: #64748B; -fx-padding: 3 0 24 0;" text="WebLager Scanning Tool" />
+                  <Label style="-fx-font-size: 12; -fx-font-weight: 500; -fx-text-fill: #2D3D4F; -fx-padding: 0 0 6 0;" text="Username" />
+                  <TextField fx:id="usernameField" maxWidth="1.7976931348623157E308" promptText="Enter username" style="-fx-pref-height: 30; -fx-border-color: #E2E4E8; -fx-border-radius: 4; -fx-background-radius: 4; -fx-font-size: 12; -fx-focus-color: #2D3D4F; -fx-faint-focus-color: transparent;" />
+                  <Label style="-fx-font-size: 12; -fx-font-weight: 500; -fx-text-fill: #2D3D4F; -fx-padding: 0 0 6 0;" text="Password" />
+                  <PasswordField fx:id="passwordField" promptText="Enter password" style="-fx-pref-height: 30; -fx-border-color: #E2E4E8; -fx-border-radius: 4; -fx-background-radius: 4; -fx-font-size: 12; -fx-focus-color: #2D3D4F; -fx-faint-focus-color: transparent;" />
+                  <Label fx:id="errorLabel" style="-fx-font-size: 12; -fx-text-fill: #FF3D32; -fx-padding: 9 0 0 0;" />
+                  <Button fx:id="loginButton" maxWidth="1.7976931348623157E308" mnemonicParsing="false" onAction="#handleLogin" style="-fx-background-color: #2D3D4F; -fx-text-fill: #FFFFFF; -fx-font-size: 12; -fx-font-weight: 500; -fx-pref-height: 33; -fx-background-radius: 4; -fx-cursor: hand;" text="Sign in" />
+               </children>
+            </VBox>
+         </children>
+      </VBox>
+   </children>
+</StackPane>
