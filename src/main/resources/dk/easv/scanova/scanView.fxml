@@ -22,6 +22,16 @@
             <ComboBox fx:id="profileComboBox" prefWidth="150" />
             <Label text="Box ID:" />
             <TextField fx:id="boxIdField" prefWidth="100" />
+
+            <!-- Logout Button -->
+            <Separator />
+            <Button text="Logout"
+                    onAction="#handleLogout"
+                    style="-fx-background-color: #EF4444;
+                           -fx-text-fill: white;
+                           -fx-font-weight: bold;
+                           -fx-background-radius: 5;
+                           -fx-cursor: hand;"/>
         </ToolBar>
     </top>
 
@@ -57,4 +67,4 @@
         </HBox>
     </bottom>
 
-</BorderPane>
+    </BorderPane>
