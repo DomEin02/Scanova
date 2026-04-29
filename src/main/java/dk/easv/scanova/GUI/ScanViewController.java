@@ -3,6 +3,7 @@ package dk.easv.scanova.GUI;
 import dk.easv.scanova.BLL.ScanManager;
 import dk.easv.scanova.BLL.SessionManager;
 import dk.easv.scanova.Model.ScannedFile;
+import dk.easv.scanova.Model.SidebarItem;
 import dk.easv.scanova.SceneManager;
 import javafx.application.Platform;
 import javafx.collections.FXCollections;
@@ -31,10 +32,11 @@ public class ScanViewController {
     @FXML
     private Label documentCountLabel;
     @FXML
-    private ListView<ScannedFile> fileListView;
+    private ListView<SidebarItem> fileListView;
 
-    private final ObservableList<ScannedFile> fileList = FXCollections.observableArrayList();
+    private final ObservableList<SidebarItem> sidebarItems = FXCollections.observableArrayList();
     private final ScanManager scanManager = new ScanManager();
+    private int lastInsertedDocId = -1;
 
     @FXML
     public void initialize() {
@@ -48,21 +50,41 @@ public class ScanViewController {
         statusLabel.setText("Ready · Logged in as: "
                 + SessionManager.getInstance().getCurrentUser());
 
-            fileListView.setItems(fileList);
-            fileListView.setCellFactory(lv -> new ListCell<>() {
-                @Override
-                protected void updateItem(ScannedFile file, boolean empty) {
-                    super.updateItem(file, empty);
-                    setText(empty || file == null ? null
-                            : "Doc " + file.getDocumentId() + "  |  File #" + file.getFileId());
+        fileListView.setItems(sidebarItems);
+        fileListView.setCellFactory(lv -> new ListCell<>() {
+            @Override
+            protected void updateItem(SidebarItem item, boolean empty) {
+                super.updateItem(item, empty);
+                if (empty || item == null) {
+                    setText(null);
+                } else if (item.isHeader()) {
+                    setText("📁  Document " + item.getDocumentId());
+                } else {
+                    setText("    File #" + item.getFile().getFileId());
                 }
-            });
+            }
+        });
+        fileListView.getSelectionModel()
+                .selectedItemProperty()
+                .addListener((obs, oldItem, newItem) -> {
+                    if (newItem == null || newItem.isHeader()) return;
+                    try {
+                        BufferedImage buffered = ImageIO.read(
+                                new ByteArrayInputStream(newItem.getFile().getImageData()));
+                        if (buffered != null) {
+                            imagePreview.setImage(SwingFXUtils.toFXImage(buffered, null));
+                        }
+                    } catch (Exception e) {
+                        statusLabel.setText("Could not load image — " + e.getMessage());
+                    }
+                });
         }
 
         @FXML
         private void onStartScan () {
             statusLabel.setText("Status: Scanning...");
-            fileList.clear();
+            sidebarItems.clear();
+            lastInsertedDocId = -1;
 
             Task<Void> scanTask = new Task<>() {
                 @Override
@@ -79,7 +101,11 @@ public class ScanViewController {
                         Platform.runLater(() -> {
                             for (ScannedFile file : fetched) {
                                 // Add to sidebar
-                                fileList.add(file);
+                                if (file.getDocumentId() != lastInsertedDocId) {
+                                    sidebarItems.add(new SidebarItem(file.getDocumentId()));
+                                    lastInsertedDocId = file.getDocumentId();
+                                }
+                                sidebarItems.add(new SidebarItem(file));
                                 // display TIFF in ImageView
                                 try {
                                     BufferedImage buffered = ImageIO.read(
