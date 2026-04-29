@@ -31,6 +31,8 @@ public class ScanViewController {
     private Label documentCountLabel;
     @FXML
     private ListView<SidebarItem> fileListView;
+    @FXML
+    private ImagePreviewController imagePreviewComponentController;
 
     private final ObservableList<SidebarItem> sidebarItems = FXCollections.observableArrayList();
     private final ScanManager scanManager = new ScanManager();
@@ -70,7 +72,7 @@ public class ScanViewController {
                         BufferedImage buffered = ImageIO.read(
                                 new ByteArrayInputStream(newItem.getFile().getImageData()));
                         if (buffered != null) {
-                            imagePreview.setImage(SwingFXUtils.toFXImage(buffered, null));
+                            imagePreviewComponentController.setImage(SwingFXUtils.toFXImage(buffered, null));
                         }
                     } catch (Exception e) {
                         statusLabel.setText("Could not load image — " + e.getMessage());
