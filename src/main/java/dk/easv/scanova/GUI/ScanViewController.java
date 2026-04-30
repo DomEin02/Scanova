@@ -78,67 +78,67 @@ public class ScanViewController {
                         statusLabel.setText("Could not load image — " + e.getMessage());
                     }
                 });
-        }
+    }
 
-        @FXML
-        private void onStartScan () {
-            statusLabel.setText("Status: Scanning...");
-            sidebarItems.clear();
-            lastInsertedDocId = -1;
+    @FXML
+    private void onStartScan () {
+        statusLabel.setText("Status: Scanning...");
+        sidebarItems.clear();
+        lastInsertedDocId = -1;
 
-            Task<Void> scanTask = new Task<>() {
-                @Override
-                protected Void call() throws Exception {
-                    scanManager.initSession();
-                    // Task 3 — show total on start
-                    Platform.runLater(() ->
-                            scanCountLabel.setText("Scans: 0 / " + scanManager.getTotalAvailable()));
+        Task<Void> scanTask = new Task<>() {
+            @Override
+            protected Void call() throws Exception {
+                scanManager.initSession();
+                // Task 3 — show total on start
+                Platform.runLater(() ->
+                        scanCountLabel.setText("Scans: 0 / " + scanManager.getTotalAvailable()));
 
-                    while (scanManager.hasMore()) {
-                        List<ScannedFile> fetched = scanManager.fetchNext();
-                        if (fetched == null) break;
+                while (scanManager.hasMore()) {
+                    List<ScannedFile> fetched = scanManager.fetchNext();
+                    if (fetched == null) break;
 
-                        Platform.runLater(() -> {
-                            for (ScannedFile file : fetched) {
-                                // Add to sidebar
-                                if (file.getDocumentId() != lastInsertedDocId) {
-                                    sidebarItems.add(new SidebarItem(file.getDocumentId()));
-                                    lastInsertedDocId = file.getDocumentId();
-                                }
-                                sidebarItems.add(new SidebarItem(file));
-                                // display TIFF in ImageView
-                                try {
-                                    BufferedImage buffered = ImageIO.read(
-                                            new ByteArrayInputStream(file.getImageData()));
-                                    if (buffered != null) {
-                                        Image image = SwingFXUtils.toFXImage(buffered, null);
-                                        imagePreviewComponentController.setImage(image);
-                                    }
-                                } catch (Exception e) {
-                                    statusLabel.setText("Status: Could not display image — " + e.getMessage());
-                                }
-                                // update counter on each fetch
-                                scanCountLabel.setText("Scans: " + scanManager.getTotalFilesFetched()
-                                        + " / " + scanManager.getTotalAvailable());
-                                documentCountLabel.setText("Documents: "
-                                        + scanManager.getAllDocuments().size());
+                    Platform.runLater(() -> {
+                        for (ScannedFile file : fetched) {
+                            // Add to sidebar
+                            if (file.getDocumentId() != lastInsertedDocId) {
+                                sidebarItems.add(new SidebarItem(file.getDocumentId()));
+                                lastInsertedDocId = file.getDocumentId();
                             }
-                        });
-                    }
-                    Platform.runLater(() ->
-                            statusLabel.setText("Status: Done — "
-                                    + scanManager.getTotalFilesFetched() + " files scanned")
-                    );
-                    return null;
+                            sidebarItems.add(new SidebarItem(file));
+                            // display TIFF in ImageView
+                            try {
+                                BufferedImage buffered = ImageIO.read(
+                                        new ByteArrayInputStream(file.getImageData()));
+                                if (buffered != null) {
+                                    Image image = SwingFXUtils.toFXImage(buffered, null);
+                                    imagePreviewComponentController.setImage(image);
+                                }
+                            } catch (Exception e) {
+                                statusLabel.setText("Status: Could not display image — " + e.getMessage());
+                            }
+                            // update counter on each fetch
+                            scanCountLabel.setText("Scans: " + scanManager.getTotalFilesFetched()
+                                    + " / " + scanManager.getTotalAvailable());
+                            documentCountLabel.setText("Documents: "
+                                    + scanManager.getAllDocuments().size());
+                        }
+                    });
                 }
-            };
-            scanTask.setOnFailed(e -> Platform.runLater(() ->
-                    statusLabel.setText("Status: Error — " + scanTask.getException().getMessage())));
+                Platform.runLater(() ->
+                        statusLabel.setText("Status: Done — "
+                                + scanManager.getTotalFilesFetched() + " files scanned")
+                );
+                return null;
+            }
+        };
+        scanTask.setOnFailed(e -> Platform.runLater(() ->
+                statusLabel.setText("Status: Error — " + scanTask.getException().getMessage())));
 
-            Thread thread = new Thread(scanTask);
-            thread.setDaemon(true);
-            thread.start();
-        }
+        Thread thread = new Thread(scanTask);
+        thread.setDaemon(true);
+        thread.start();
+    }
 
     @FXML
     private void handleLogout() {
