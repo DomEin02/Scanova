@@ -1,12 +1,13 @@
 package dk.easv.scanova.BLL;
 
+import com.google.zxing.*;
+import com.google.zxing.client.j2se.BufferedImageLuminanceSource;
+import com.google.zxing.common.HybridBinarizer;
+import dk.easv.scanova.DAL.FileDAO;
 import dk.easv.scanova.DAL.ScannerClient;
 import dk.easv.scanova.Model.Document;
 import dk.easv.scanova.Model.ScannedFile;
 
-import com.google.zxing.*;
-import com.google.zxing.client.j2se.BufferedImageLuminanceSource;
-import com.google.zxing.common.HybridBinarizer;
 import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayInputStream;
@@ -14,21 +15,23 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class ScanManager {
+
     private final ScannerClient scannerClient = new ScannerClient();
-    private final List<Document> documents    = new ArrayList<>();
+    private final FileDAO fileDAO = new FileDAO();
+
+    private final List<Document> documents = new ArrayList<>();
 
     private int fileIdCounter    = 0;
     private int referenceCounter = 0;
-    private int documentCounter  = 0;
-    private int totalAvailable   = 0;
+    private int documentCounter = 0;
+    private int totalAvailable = 0;
 
      // Call this when the user starts a new scan session.
      // Fetches the total count from the API and resets all counters.
     public void initSession() throws Exception {
-        totalAvailable   = scannerClient.getTotalCount();
-        fileIdCounter    = 0;
+        totalAvailable = scannerClient.getTotalCount();
         referenceCounter = 0;
-        documentCounter  = 0;
+        documentCounter = 0;
         documents.clear();
         documents.add(new Document(++documentCounter));
         System.out.println("Session started. Files available: " + totalAvailable);
@@ -40,25 +43,43 @@ public class ScanManager {
      // Returns an empty list if a barcode was detected (new doc started).
      // Returns null if there are no more files.
     public List<ScannedFile> fetchNext() throws Exception {
+
         if (!hasMore()) return null;
 
         referenceCounter++;
+
         List<byte[]> tiffs = scannerClient.fetchTiffsById(referenceCounter);
 
         List<ScannedFile> result = new ArrayList<>();
+
         for (byte[] data : tiffs) {
+
             if (isBarcode(data)) {
                 System.out.println("  → Barcode! Starting document #" + (documentCounter + 1));
                 documents.add(new Document(++documentCounter));
-            } else {
-                fileIdCounter++;
-                ScannedFile file = new ScannedFile(
-                        fileIdCounter, referenceCounter, data, documentCounter
-                );
-                getCurrentDocument().addFile(file);
-                result.add(file);
+                continue;
             }
+
+            // ✔ DB CREATE → REAL ID
+            int fileId = fileDAO.createFileAndGetId(
+                    documentCounter,
+                    "api_" + referenceCounter
+            );
+
+            int rotation = fileDAO.getRotation(fileId);
+
+            ScannedFile file = new ScannedFile(
+                    fileId,
+                    referenceCounter,
+                    data,
+                    rotation,
+                    documentCounter
+            );
+
+            getCurrentDocument().addFile(file);
+            result.add(file);
         }
+
         return result;
     }
 
