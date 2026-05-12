@@ -29,7 +29,7 @@ public class ImagePreviewController {
     @FXML
     private void rotateRight() {
 
-        currentRotation = (currentRotation + 90) % 360;
+        currentRotation = (currentRotation + 5) % 360;
 
         imageView.setRotate(currentRotation);
 
@@ -41,7 +41,7 @@ public class ImagePreviewController {
     @FXML
     private void rotateLeft() {
 
-        currentRotation = (currentRotation + 270) % 360;
+        currentRotation = (currentRotation + 355) % 360;
 
         imageView.setRotate(currentRotation);
 

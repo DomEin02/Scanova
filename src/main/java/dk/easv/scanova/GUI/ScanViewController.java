@@ -52,8 +52,9 @@ public class ScanViewController {
             return;
         }
 
+        // Use getUsername() since Elena's SessionManager stores a User object
         statusLabel.setText("Ready · Logged in as: "
-                + SessionManager.getInstance().getCurrentUser());
+                + SessionManager.getInstance().getCurrentUser().getUsername());
 
         // Load hardcoded profiles — Sprint 3 loads from DB
         profileComboBox.getItems().addAll("Default", "WebLager_Standard");
@@ -89,8 +90,8 @@ public class ScanViewController {
                         BufferedImage buffered = ImageIO.read(
                                 new ByteArrayInputStream(newItem.getFile().getImageData()));
                         if (buffered != null) {
-                            imagePreviewComponentController.setImage(
-                                    SwingFXUtils.toFXImage(buffered, null));
+                            Image image = SwingFXUtils.toFXImage(buffered, null);
+                            imagePreviewComponentController.setImage(image, newItem.getFile());
                         }
                     } catch (Exception e) {
                         statusLabel.setText("Could not load image — " + e.getMessage());
@@ -170,13 +171,13 @@ public class ScanViewController {
                                         new ByteArrayInputStream(file.getImageData()));
                                 if (buffered != null) {
                                     Image image = SwingFXUtils.toFXImage(buffered, null);
-                                    imagePreviewComponentController.setImage(image);
+                                    imagePreviewComponentController.setImage(image, file);
                                 }
                             } catch (Exception e) {
                                 statusLabel.setText("Could not display image — " + e.getMessage());
                             }
 
-                            // Update counters using actual document files
+                            // Update counters
                             int totalScans = scanManager.getAllDocuments()
                                     .stream()
                                     .mapToInt(d -> d.getFiles().size())
