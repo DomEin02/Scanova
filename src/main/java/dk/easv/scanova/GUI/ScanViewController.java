@@ -63,7 +63,6 @@ public class ScanViewController {
         startScanButton.setDisable(true);
         profileComboBox.valueProperty().addListener((obs, old, val) -> checkCanStartScan());
         boxIdField.textProperty().addListener((obs, old, val) -> checkCanStartScan());
-
         fileListView.setItems(sidebarItems);
         fileListView.setCellFactory(lv -> new ListCell<>() {
             @Override
@@ -99,7 +98,7 @@ public class ScanViewController {
                 });
     }
 
-    // ── Check if scan can start ───────────────────────────────────────────────
+    //Check if scan can start
     private void checkCanStartScan() {
         boolean hasProfile = profileComboBox.getValue() != null;
         boolean hasBox = boxIdField.getText() != null
@@ -107,13 +106,13 @@ public class ScanViewController {
         startScanButton.setDisable(!(hasProfile && hasBox));
     }
 
-    // ── Check if document header already exists in sidebar ───────────────────
+    //Check if document header already exists in sidebar
     private boolean headerExists(int documentId) {
         return sidebarItems.stream()
                 .anyMatch(i -> i.isHeader() && i.getDocumentId() == documentId);
     }
 
-    // ── Start Scan ────────────────────────────────────────────────────────────
+    //Start Scan
     @FXML
     private void onStartScan() {
         scanning = true;
@@ -124,7 +123,7 @@ public class ScanViewController {
             @Override
             protected Void call() throws Exception {
 
-                // Clear old pages from DB before new scan
+                // Clear old pages before new scan — full chain built in Sprint 3
                 try {
                     pageDAO.clearPages();
                 } catch (Exception e) {
@@ -144,7 +143,6 @@ public class ScanViewController {
 
                     for (ScannedFile file : fetched) {
 
-                        // Save to DB on separate thread — never blocks scanning
                         new Thread(() -> {
                             try {
                                 pageDAO.insertPage(file);
@@ -154,18 +152,13 @@ public class ScanViewController {
                         }).start();
 
                         Platform.runLater(() -> {
-                            // Add document header only once
                             if (!headerExists(file.getDocumentId())) {
                                 sidebarItems.add(new SidebarItem(file.getDocumentId()));
                             }
-
-                            // Add file to sidebar
                             sidebarItems.add(new SidebarItem(file));
 
-                            // Update status once files start appearing
                             statusLabel.setText("Status: Scanning...");
 
-                            // Display TIFF in ImageView
                             try {
                                 BufferedImage buffered = ImageIO.read(
                                         new ByteArrayInputStream(file.getImageData()));
@@ -177,7 +170,6 @@ public class ScanViewController {
                                 statusLabel.setText("Could not display image — " + e.getMessage());
                             }
 
-                            // Update counters
                             int totalScans = scanManager.getAllDocuments()
                                     .stream()
                                     .mapToInt(d -> d.getFiles().size())
@@ -205,49 +197,41 @@ public class ScanViewController {
         thread.start();
     }
 
-    // ── Stop Scan ─────────────────────────────────────────────────────────────
+    //Stop Scan
     @FXML
     private void onStopScan() {
         scanning = false;
         statusLabel.setText("Status: Stopped");
     }
-
-    // ── Open Slideshow Review Mode ────────────────────────────────────────────
+    //Open Slideshow Review Mode
     @FXML
     private void onOpenSlideshow() {
         List<ScannedFile> allFiles = sidebarItems.stream()
                 .filter(item -> !item.isHeader())
                 .map(SidebarItem::getFile)
                 .collect(Collectors.toList());
-
         if (allFiles.isEmpty()) {
             statusLabel.setText("Status: No files to review. Start a scan first.");
             return;
         }
-
         try {
             FXMLLoader loader = new FXMLLoader(
                     getClass().getResource("/dk/easv/scanova/slideshowView.fxml"));
             Parent root = loader.load();
-
             SlideshowController controller = loader.getController();
-
             Stage stage = new Stage();
             stage.setTitle("Scanova — Review Mode");
             stage.setScene(new Scene(root));
             stage.show();
             stage.requestFocus();
-
             // Pass files AFTER show() so scene is available for keyboard shortcuts
             controller.setFiles(allFiles);
-
         } catch (Exception e) {
             statusLabel.setText("Could not open review mode: " + e.getMessage());
             e.printStackTrace();
         }
     }
-
-    // ── Logout ────────────────────────────────────────────────────────────────
+    //Logout
     @FXML
     private void handleLogout() {
         SessionManager.getInstance().logout();

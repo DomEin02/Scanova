@@ -9,9 +9,7 @@ public class ScanovaApp extends Application {
     @Override
     public void start(Stage stage) {
         SceneManager.setStage(stage);
-
         SceneManager.load("loginView.fxml");
-
         stage.setTitle("Scanova");
         stage.setResizable(false); // keep login screen fixed size
         stage.show();
