@@ -7,15 +7,14 @@ import dk.easv.scanova.DAL.FileDAO;
 import dk.easv.scanova.Model.ScannedFile;
 import javafx.scene.control.Slider;
 import javafx.scene.layout.StackPane;
-import javafx.scene.shape.Rectangle;
 
 public class ImagePreviewController {
 
     @FXML
-    private ImageView imageView;
+    private StackPane imageContainer;
 
     @FXML
-    private StackPane imageContainer;
+    private ImageView imageView;
 
     @FXML
     private Slider rotationSlider;
@@ -28,25 +27,22 @@ public class ImagePreviewController {
 
     @FXML
     private void initialize() {
+        imageView.setPreserveRatio(true);
+        imageView.setSmooth(true);
 
         imageView.fitWidthProperty().bind(
-                imageContainer.widthProperty().subtract(20));
+                imageContainer.widthProperty().multiply(0.8)
+        );
 
         imageView.fitHeightProperty().bind(
-                imageContainer.heightProperty().subtract(20));
+                imageContainer.heightProperty().multiply(0.8)
+        );
 
         rotationSlider.valueProperty().addListener((obs, oldVal, newVal) -> {
 
             currentRotation = ((int) Math.round(newVal.doubleValue() / 5)) * 5;
 
             imageView.setRotate(currentRotation);
-
-            Rectangle clip = new Rectangle();
-
-            clip.widthProperty().bind(imageContainer.widthProperty());
-            clip.heightProperty().bind(imageContainer.heightProperty());
-
-            imageContainer.setClip(clip);
         });
 
         rotationSlider.setOnMouseReleased(event -> {
