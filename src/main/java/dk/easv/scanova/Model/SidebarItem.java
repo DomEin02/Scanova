@@ -1,4 +1,4 @@
-package dk.easv.scanova.model;
+package dk.easv.scanova.Model;
 
 public class SidebarItem {
 

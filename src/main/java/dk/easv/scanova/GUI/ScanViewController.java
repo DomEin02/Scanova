@@ -3,7 +3,7 @@ package dk.easv.scanova.GUI;
 import dk.easv.scanova.BLL.ScanManager;
 import dk.easv.scanova.BLL.SessionManager;
 import dk.easv.scanova.Model.ScannedFile;
-import dk.easv.scanova.model.SidebarItem;
+import dk.easv.scanova.Model.SidebarItem;
 import dk.easv.scanova.SceneManager;
 import javafx.application.Platform;
 import javafx.collections.FXCollections;
@@ -28,7 +28,7 @@ public class ScanViewController {
     @FXML private Label documentCountLabel;
     @FXML private ListView<SidebarItem> fileListView;
 
-    @FXML private ImagePreviewController imagePreviewComponent;
+    @FXML private ImagePreviewController imagePreviewComponentController;
 
     private final ObservableList<SidebarItem> sidebarItems = FXCollections.observableArrayList();
     private final ScanManager scanManager = new ScanManager();
@@ -42,7 +42,7 @@ public class ScanViewController {
         }
 
         statusLabel.setText("Ready · Logged in as: " +
-                SessionManager.getInstance().getCurrentUser());
+                SessionManager.getInstance().getCurrentUser().getUsername());
 
         fileListView.setItems(sidebarItems);
 
@@ -79,7 +79,7 @@ public class ScanViewController {
 
                         if (buffered != null) {
                             Image image = SwingFXUtils.toFXImage(buffered, null);
-                            imagePreviewComponent.setImage(image, file);
+                            imagePreviewComponentController.setImage(image, file);
                         }
 
                     } catch (Exception e) {
@@ -135,7 +135,7 @@ public class ScanViewController {
 
                                 if (buffered != null) {
                                     Image image = SwingFXUtils.toFXImage(buffered, null);
-                                    imagePreviewComponent.setImage(image, file);
+                                    imagePreviewComponentController.setImage(image, file);
                                 }
 
                             } catch (Exception e) {
