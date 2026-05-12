@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.TextField?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.ComboBox?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.PasswordField?>
+<?import javafx.scene.control.TableColumn?>
+<?import javafx.scene.control.TableView?>
+<?import javafx.scene.layout.BorderPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.Region?>
+<?import javafx.scene.layout.VBox?>
+
+
+<BorderPane maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="600.0" prefWidth="900.0" style="-fx-background-color: #F0F2F5;" xmlns="http://javafx.com/javafx/26" xmlns:fx="http://javafx.com/fxml/1" fx:controller="dk.easv.scanova.GUI.AdminController">
+   <top>
+      <HBox alignment="CENTER_LEFT" prefHeight="100.0" prefWidth="200.0" style="-fx-background-color: #1B2A4A; -fx-padding: 16 24 16 24; -fx-spacing: 16;" BorderPane.alignment="CENTER">
+         <children>
+            <Label style="-fx-text-fill: white; -fx-font-size: 20; -fx-font-weight: bold;" text="Scanova" />
+            <Region prefHeight="200.0" prefWidth="200.0" HBox.hgrow="ALWAYS" />
+            <Label fx:id="loggedInLabel" style="-fx-text-fill: #A0AEC0; -fx-font-size: 13px;" text="Logged in as:" />
+            <Button mnemonicParsing="false" onAction="#handleLogout" style="-fx-background-color: transparent; -fx-text-fill: #2ECC9A; -fx-border-color: #2ECC9A; -fx-border-radius: 4; -fx-cursor: hand;" text="Logout" />
+         </children>
+      </HBox>
+   </top>
+   <center>
+      <HBox prefHeight="100.0" prefWidth="200.0" style="-fx-padding: 24; -fx-spacing: 24;" BorderPane.alignment="CENTER">
+         <children>
+            <VBox prefHeight="200.0" prefWidth="100.0" style="-fx-spacing: 12;" HBox.hgrow="ALWAYS">
+               <children>
+                  <Label style="-fx-font-size: 16; -fx-font-weight: bold; -fx-text-fill: #1B2A4A;" text="User Accounts" />
+                  <TableView fx:id="userTable" prefHeight="200.0" prefWidth="200.0" style="-fx-background-color: white; -fx-border-color: #E2E8F0;" VBox.vgrow="ALWAYS">
+                    <columns>
+                      <TableColumn fx:id="colId" prefWidth="50.0" text="ID" />
+                      <TableColumn fx:id="colUsername" prefWidth="150.0" text="Username" />
+                        <TableColumn fx:id="colRole" prefWidth="100.0" text="Role" />
+                    </columns>
+                  </TableView>
+                  <HBox prefHeight="100.0" prefWidth="200.0" spacing="8.0">
+                     <children>
+                        <Button fx:id="editButton" mnemonicParsing="false" onAction="#handleEditUser" style="-fx-background-color: #1B2A4A; -fx-text-fill: white; -fx-padding: 8 16; -fx-background-radius: 4; -fx-cursor: hand;" text="Edit Selected" />
+                        <Button fx:id="deleteButton" mnemonicParsing="false" onAction="#handleDeleteUser" style="-fx-background-color: #E53E3E; -fx-text-fill: white; -fx-padding: 8 16; -fx-background-radius: 4; -fx-cursor: hand;" text="Delete Selected" />
+                     </children>
+                  </HBox>
+               </children>
+            </VBox>
+            <VBox prefHeight="200.0" prefWidth="300.0" spacing="16.0" style="-fx-background-color: white; padding: 24; -fx-border-color: #E2E8F0; -fx-border-radius: 8; -fx-background-radius: 8;">
+               <children>
+                  <Label fx:id="formTitle" style="-fx-font-size: 15; -fx-font-weight: bold; -fx-text-fill: #1B2A4A;" text="Create New User" />
+                  <TextField fx:id="usernameField" promptText="e.g. JK" style="-fx-border-color: #CBD5E0; -fx-border-radius: 4; -fx-background-radius: 4; -fx-padding: 8;" />
+                  <PasswordField fx:id="passwordField" promptText="Min. 6 characters" style="-fx-border-color: #CBD5E0; -fx-border-radius: 4; -fx-background-radius: 4; -fx-padding: 8;" />
+                  <ComboBox fx:id="roleComboBox" prefWidth="252.0" />
+                  <Label fx:id="feedbackLabel" style="-fx-font-size: 12;" />
+                  <Button fx:id="saveButton" mnemonicParsing="false" onAction="#handleSaveUser" prefWidth="252.0" style="-fx-background-color: #2ECC9A; -fx-text-fill: white; -fx-font-weight: bold; -fx-padding: 10; -fx-background-radius: 4; -fx-cursor: hand;" text="Create User" />
+                  <Button mnemonicParsing="false" onAction="#handleClearForm" prefWidth="252.0" style="-fx-background-color: transparent; -fx-text-fill: #4A5568; -fx-border-color: #CBD5E0; -fx-border-radius: 4; -fx-background-radius: 4; -fx-padding: 10; -fx-cursor: hand;" text="Clear Form" />
+               </children>
+            </VBox>
+         </children>
+      </HBox>
+   </center>
+</BorderPane>

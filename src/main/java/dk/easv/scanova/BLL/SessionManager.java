@@ -1,13 +1,14 @@
 package dk.easv.scanova.BLL;
 
+import dk.easv.scanova.Model.User;
+
 public class SessionManager {
 
+
     private static SessionManager instance;
-
-    private boolean loggedIn = false;
-    private String  currentUser = "";
-
+    private User currentUser;
     private SessionManager() {}
+
 
     public static SessionManager getInstance() {
         if (instance == null) {
@@ -16,16 +17,23 @@ public class SessionManager {
         return instance;
     }
 
-    public void login(String username) {
-        this.loggedIn    = true;
-        this.currentUser = username;
+    public void setCurrentUser(User user) {
+        this.currentUser = user;
+    }
+
+    public User getCurrentUser() {
+        return currentUser;
+    }
+
+    public boolean isAdmin() {
+        return currentUser != null && currentUser.isAdmin();
     }
 
     public void logout() {
-        this.loggedIn    = false;
-        this.currentUser = "";
+        this.currentUser = null;
     }
 
-    public boolean isLoggedIn() { return loggedIn; }
-    public String  getCurrentUser() { return currentUser; }
+    public boolean isLoggedIn() {
+        return currentUser != null;
+    }
 }

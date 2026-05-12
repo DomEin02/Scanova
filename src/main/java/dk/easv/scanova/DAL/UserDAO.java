@@ -1,0 +1,99 @@
+package dk.easv.scanova.DAL;
+
+import dk.easv.scanova.Model.User;
+import java.sql.*;
+import java.util.ArrayList;
+import java.util.List;
+
+public class UserDAO {
+
+    private final DBConnector dbConnector;
+
+    public UserDAO() throws Exception {
+        this.dbConnector = new DBConnector();
+    }
+
+    public List<User> getAllUsers() throws Exception {
+        List<User> users = new ArrayList<>();
+
+        String sql = "SELECT id, username, password, role FROM users";
+
+        try (Connection con = dbConnector.getConnection();
+             Statement st = con.createStatement();
+             ResultSet rs = st.executeQuery(sql)) {
+
+            while (rs.next()) {
+                User user = new User(
+                        rs.getInt("id"),
+                        rs.getString("username"),
+                        rs.getString("password"),
+                        rs.getString("role")
+                );
+                users.add(user);
+            }
+        }
+        return users;
+    }
+
+    public User getUserByUsername(String username) throws Exception {
+        String sql = "SELECT id, username, password, role FROM users WHERE username = ?";
+
+        try (Connection con = dbConnector.getConnection();
+             PreparedStatement ps = con.prepareStatement(sql)) {
+
+            ps.setString(1, username);
+
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return new User(
+                            rs.getInt("id"),
+                            rs.getString("username"),
+                            rs.getString("password"),
+                            rs.getString("role")
+                    );
+                }
+            }
+        }
+        return null;
+    }
+
+    public void createUser(User user) throws Exception {
+        String sql = "INSERT INTO users (username, password, role) VALUES (?, ?, ?)";
+
+        try (Connection con = dbConnector.getConnection();
+             PreparedStatement ps = con.prepareStatement(sql)) {
+
+            ps.setString(1, user.getUsername());
+            ps.setString(2, user.getPassword());
+            ps.setString(3, user.getRole());
+
+            ps.executeUpdate();
+        }
+    }
+
+    public void updateUser(User user) throws Exception {
+        String sql = "UPDATE users SET username = ?, password = ?, role = ? WHERE id = ?";
+
+        try (Connection con = dbConnector.getConnection();
+             PreparedStatement ps = con.prepareStatement(sql)) {
+
+            ps.setString(1, user.getUsername());
+            ps.setString(2, user.getPassword());
+            ps.setString(3, user.getRole());
+            ps.setInt(4, user.getId());
+
+            ps.executeUpdate();
+        }
+    }
+
+    public void deleteUser(int userId) throws Exception {
+        String sql = "DELETE FROM users WHERE id = ?";
+
+        try (Connection con = dbConnector.getConnection();
+             PreparedStatement ps = con.prepareStatement(sql)) {
+
+            ps.setInt(1, userId);
+            ps.executeUpdate();
+        }
+    }
+}
