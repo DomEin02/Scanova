@@ -24,8 +24,15 @@
                 prefWidth="300"/>
     </ToolBar>
 
-    <ImageView fx:id="imageView"
-               preserveRatio="true"
-               fitWidth="800"
-               fitHeight="700"/>
+    <StackPane fx:id="imageContainer"
+               prefWidth="800"
+               prefHeight="700"
+               style="-fx-background-color: #202020;">
+
+        <ImageView fx:id="imageView"
+                   preserveRatio="true"
+                   smooth="true"/>
+
+    </StackPane>
+
 </VBox>

@@ -6,11 +6,15 @@ import javafx.scene.image.ImageView;
 import dk.easv.scanova.DAL.FileDAO;
 import dk.easv.scanova.Model.ScannedFile;
 import javafx.scene.control.Slider;
+import javafx.scene.layout.StackPane;
 
 public class ImagePreviewController {
 
     @FXML
     private ImageView imageView;
+
+    @FXML
+    private StackPane imageContainer;
 
     @FXML
     private Slider rotationSlider;
@@ -23,6 +27,12 @@ public class ImagePreviewController {
 
     @FXML
     private void initialize() {
+
+        imageView.fitWidthProperty().bind(
+                imageContainer.widthProperty().subtract(20));
+
+        imageView.fitHeightProperty().bind(
+                imageContainer.heightProperty().subtract(20));
 
         rotationSlider.valueProperty().addListener((obs, oldVal, newVal) -> {
 
