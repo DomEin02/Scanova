@@ -5,10 +5,7 @@ import dk.easv.scanova.BLL.UserManager;
 import dk.easv.scanova.Model.User;
 import dk.easv.scanova.SceneManager;
 import javafx.fxml.FXML;
-import javafx.scene.control.Alert;
-import javafx.scene.control.Button;
-import javafx.scene.control.PasswordField;
-import javafx.scene.control.TextField;
+import javafx.scene.control.*;
 
 
 public class LoginController {
