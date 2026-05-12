@@ -9,8 +9,19 @@
       alignment="CENTER">
 
     <ToolBar>
-        <Button text="Rotate ⟲" onAction="#rotateLeft"/>
-        <Button text="Rotate ⟳" onAction="#rotateRight"/>
+        <Label text="Rotation:" />
+
+        <Slider fx:id="rotationSlider"
+                min="0"
+                max="360"
+                value="0"
+                blockIncrement="5"
+                majorTickUnit="45"
+                showTickLabels="true"
+                showTickMarks="true"
+                snapToTicks="true"
+                minorTickCount="0"
+                prefWidth="300"/>
     </ToolBar>
 
     <ImageView fx:id="imageView"
