@@ -48,7 +48,8 @@
 
     <!-- CENTER (IMAGE PREVIEW) -->
     <center>
-        <fx:include source="imagePreview.fxml" fx:id="imagePreviewComponent"/>
+        <fx:include source="imagePreview.fxml"
+                    fx:id="imagePreviewComponent"/>
     </center>
 
     <!-- BOTTOM STATUS BAR -->
