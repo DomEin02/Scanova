@@ -6,13 +6,15 @@
             fx:controller="dk.easv.scanova.GUI.ScanViewController"
             prefHeight="800.0" prefWidth="1200.0">
 
-    <!-- TOP TOOLBAR -->
     <top>
         <ToolBar>
             <Button text="Start Scan" fx:id="startScanButton" onAction="#onStartScan"/>
-            <Button text="Stop" fx:id="stopButton"/>
-            <Separator />
-
+            <Button text="Stop" fx:id="stopButton" onAction="#onStopScan"/>
+            <Button text="Review Mode" onAction="#onOpenSlideshow"
+                    style="-fx-background-color: #1ABC9C;
+                           -fx-text-fill: white;
+                           -fx-font-weight: bold;
+                           -fx-background-radius: 5;"/>
             <Separator />
             <Button text="Export TIFF" fx:id="exportButton"/>
             <Separator />
@@ -20,8 +22,6 @@
             <ComboBox fx:id="profileComboBox" prefWidth="150" />
             <Label text="Box ID:" />
             <TextField fx:id="boxIdField" prefWidth="100" />
-
-            <!-- Logout Button -->
             <Separator />
             <Button text="Logout"
                     onAction="#handleLogout"
@@ -33,10 +33,10 @@
         </ToolBar>
     </top>
 
-    <!-- LEFT SIDEBAR (FILES grouped by Document) -->
     <left>
         <VBox prefWidth="220" style="-fx-padding: 8; -fx-spacing: 6;">
-            <Label text="Documents &amp; Files" style="-fx-font-weight: bold; -fx-font-size: 13;"/>
+            <Label text="Documents &amp; Files"
+                   style="-fx-font-weight: bold; -fx-font-size: 13;"/>
             <ListView fx:id="fileListView" VBox.vgrow="ALWAYS"/>
             <HBox spacing="5">
                 <Button text="↑" fx:id="moveUpButton"/>
@@ -46,13 +46,10 @@
         </VBox>
     </left>
 
-    <!-- CENTER (IMAGE PREVIEW) -->
     <center>
-        <fx:include source="imagePreview.fxml"
-                    fx:id="imagePreviewComponent"/>
+        <fx:include source="imagePreview.fxml" fx:id="imagePreviewComponent"/>
     </center>
 
-    <!-- BOTTOM STATUS BAR -->
     <bottom>
         <HBox spacing="30" style="-fx-padding: 8; -fx-background-color: #f0f0f0;">
             <Label fx:id="scanCountLabel" text="Scans: 0 / 0"/>
