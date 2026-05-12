@@ -7,6 +7,7 @@ import dk.easv.scanova.DAL.FileDAO;
 import dk.easv.scanova.Model.ScannedFile;
 import javafx.scene.control.Slider;
 import javafx.scene.layout.StackPane;
+import javafx.scene.shape.Rectangle;
 
 public class ImagePreviewController {
 
@@ -39,6 +40,13 @@ public class ImagePreviewController {
             currentRotation = ((int) Math.round(newVal.doubleValue() / 5)) * 5;
 
             imageView.setRotate(currentRotation);
+
+            Rectangle clip = new Rectangle();
+
+            clip.widthProperty().bind(imageContainer.widthProperty());
+            clip.heightProperty().bind(imageContainer.heightProperty());
+
+            imageContainer.setClip(clip);
         });
 
         rotationSlider.setOnMouseReleased(event -> {
