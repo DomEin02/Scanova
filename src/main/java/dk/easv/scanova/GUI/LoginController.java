@@ -7,12 +7,11 @@ import dk.easv.scanova.SceneManager;
 import javafx.fxml.FXML;
 import javafx.scene.control.*;
 
-
 public class LoginController {
 
     @FXML private TextField usernameField;
     @FXML private PasswordField passwordField;
-    @FXML private Button loginButton;
+    @FXML private Label errorLabel;
 
     private UserManager userManager;
 
@@ -21,22 +20,22 @@ public class LoginController {
         try {
             userManager = new UserManager();
         } catch (Exception e) {
-            showError("System Error", "Could not connect to the database.\n" + e.getMessage());
+            errorLabel.setText("Could not connect to database.");
         }
     }
 
     @FXML
     private void handleLogin() {
+        errorLabel.setText("");
         String username = usernameField.getText().trim();
         String password = passwordField.getText();
 
-
         if (username.isEmpty() || password.isEmpty()) {
-            showError("Missing Input", "Please enter both username and password.");
+            errorLabel.setText("Please enter both username and password.");
             return;
         }
 
-        //Temp Login
+        // Temp hardcoded login — works without DB connection
         if (username.equals("admin") && password.equals("admin123")) {
             User tempUser = new User(1, "admin", "", "Admin");
             SessionManager.getInstance().setCurrentUser(tempUser);
@@ -51,36 +50,26 @@ public class LoginController {
             return;
         }
 
+        // Real DB login
         try {
             User user = userManager.login(username, password);
 
             if (user == null) {
-                // Wrong username or password
-                showError("Login Failed", "Incorrect username or password.");
+                errorLabel.setText("Incorrect username or password.");
                 passwordField.clear();
                 return;
             }
 
-
             SessionManager.getInstance().setCurrentUser(user);
 
-
             if (user.isAdmin()) {
-                SceneManager.load("adminView.fxml");   // Step 8
+                SceneManager.load("adminView.fxml");
             } else {
                 SceneManager.load("scanView.fxml");
             }
 
         } catch (Exception e) {
-            showError("System Error", "Something went wrong:\n" + e.getMessage());
+            errorLabel.setText("Something went wrong: " + e.getMessage());
         }
-    }
-
-    private void showError(String title, String message) {
-        Alert alert = new Alert(Alert.AlertType.ERROR);
-        alert.setTitle(title);
-        alert.setHeaderText(null);
-        alert.setContentText(message);
-        alert.showAndWait();
     }
 }

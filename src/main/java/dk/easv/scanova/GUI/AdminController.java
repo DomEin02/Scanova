@@ -1,225 +1,3 @@
-/*
-package dk.easv.scanova.GUI;
-
-
-import dk.easv.scanova.BLL.SessionManager;
-import dk.easv.scanova.BLL.UserManager;
-import dk.easv.scanova.Model.User;
-import dk.easv.scanova.SceneManager;
-import javafx.collections.FXCollections;
-import javafx.collections.ObservableList;
-import javafx.fxml.FXML;
-import javafx.scene.control.*;
-import javafx.scene.paint.Color;
-
-/**
- * Controller for adminView.fxml
- *
- * Two modes:
- *   CREATE mode — form is blank, Save button says "Create User"
- *   EDIT mode   — form filled with selected user, Save button says "Update User"
- *
- * Mode switches automatically when admin clicks "Edit Selected".
- */
-/*
-public class AdminController {
-
-    // ── Table (left side) ──────────────────────────────────
-    @FXML private TableView<User> userTable;
-    @FXML private TableColumn<User, Integer> colId;
-    @FXML private TableColumn<User, String>  colUsername;
-    @FXML private TableColumn<User, String>  colRole;
-
-    // ── Form (right side) ──────────────────────────────────
-    @FXML private Label         formTitle;
-    @FXML private TextField     usernameField;
-    @FXML private PasswordField passwordField;
-    @FXML private ComboBox<String> roleComboBox;
-    @FXML private Label         feedbackLabel;
-    @FXML private Button        saveButton;
-
-    // ── Header ─────────────────────────────────────────────
-    @FXML private Label loggedInLabel;
-
-    // ── Internal state ─────────────────────────────────────
-    private UserManager userManager;
-    private User userBeingEdited = null; // null = CREATE mode
-
-    // ───────────────────────────────────────────────────────
-    // initialize() runs automatically when the FXML loads
-    // ───────────────────────────────────────────────────────
-    @FXML
-    public void initialize() {
-        // Set up UserManager
-        try {
-            userManager = new UserManager();
-        } catch (Exception e) {
-            showFeedback("Could not connect to database: " + e.getMessage(), false);
-            return;
-        }
-
-        // Show who is logged in
-        User current = SessionManager.getInstance().getCurrentUser();
-        if (current != null) {
-            loggedInLabel.setText("Logged in as: " + current.getUsername());
-        }
-
-        // Populate role dropdown
-        roleComboBox.setItems(FXCollections.observableArrayList("Admin", "User"));
-        roleComboBox.setValue("User"); // default selection
-
-        // Wire table columns to User fields
-        colId.setCellValueFactory(data ->
-                new javafx.beans.property.SimpleIntegerProperty(
-                        data.getValue().getId()).asObject());
-
-        colUsername.setCellValueFactory(data ->
-                new javafx.beans.property.SimpleStringProperty(
-                        data.getValue().getUsername()));
-
-        colRole.setCellValueFactory(data ->
-                new javafx.beans.property.SimpleStringProperty(
-                        data.getValue().getRole()));
-
-        // Load users from database into the table
-        loadUsers();
-    }
-
-    // ───────────────────────────────────────────────────────
-    // Load all users from DB into the TableView
-    // ───────────────────────────────────────────────────────
-    private void loadUsers() {
-        try {
-            ObservableList<User> users =
-                    FXCollections.observableArrayList(userManager.getAllUsers());
-            userTable.setItems(users);
-        } catch (Exception e) {
-            showFeedback("Could not load users: " + e.getMessage(), false);
-        }
-    }
-
-    // ───────────────────────────────────────────────────────
-    // SAVE — handles both CREATE and EDIT depending on mode
-    // ───────────────────────────────────────────────────────
-    @FXML
-    private void handleSaveUser() {
-        String username = usernameField.getText().trim();
-        String password = passwordField.getText();
-        String role     = roleComboBox.getValue();
-
-        try {
-            if (userBeingEdited == null) {
-                // ── CREATE mode ──
-                userManager.createUser(username, password, role);
-                showFeedback("User '" + username + "' created successfully!", true);
-            } else {
-                // ── EDIT mode ──
-                userManager.updateUser(userBeingEdited.getId(), username, password, role);
-                showFeedback("User '" + username + "' updated successfully!", true);
-            }
-
-            // Refresh table and reset form
-            loadUsers();
-            handleClearForm();
-
-        } catch (Exception e) {
-            // Validation errors or DB errors appear here
-            showFeedback(e.getMessage(), false);
-        }
-    }
-
-    // ───────────────────────────────────────────────────────
-    // EDIT — fills the form with the selected user's data
-    // ───────────────────────────────────────────────────────
-    @FXML
-    private void handleEditUser() {
-        User selected = userTable.getSelectionModel().getSelectedItem();
-
-        if (selected == null) {
-            showFeedback("Please select a user to edit.", false);
-            return;
-        }
-
-        // Switch to EDIT mode
-        userBeingEdited = selected;
-
-        // Fill the form with existing data
-        usernameField.setText(selected.getUsername());
-        passwordField.clear(); // leave blank — means "keep existing password"
-        roleComboBox.setValue(selected.getRole());
-
-        // Update UI labels to show we are editing
-        formTitle.setText("Edit User");
-        saveButton.setText("Update User");
-        showFeedback("Editing user: " + selected.getUsername() +
-                "\nLeave password blank to keep existing.", true);
-    }
-
-    // ───────────────────────────────────────────────────────
-    // DELETE — removes selected user after confirmation
-    // ───────────────────────────────────────────────────────
-    @FXML
-    private void handleDeleteUser() {
-        User selected = userTable.getSelectionModel().getSelectedItem();
-
-        if (selected == null) {
-            showFeedback("Please select a user to delete.", false);
-            return;
-        }
-
-        // Confirmation dialog — prevents accidental deletes
-        Alert confirm = new Alert(Alert.AlertType.CONFIRMATION);
-        confirm.setTitle("Delete User");
-        confirm.setHeaderText("Delete user '" + selected.getUsername() + "'?");
-        confirm.setContentText("This action cannot be undone.");
-
-        confirm.showAndWait().ifPresent(response -> {
-            if (response == ButtonType.OK) {
-                try {
-                    userManager.deleteUser(selected.getId());
-                    showFeedback("User deleted successfully.", true);
-                    loadUsers();
-                    handleClearForm();
-                } catch (Exception e) {
-                    showFeedback("Could not delete user: " + e.getMessage(), false);
-                }
-            }
-        });
-    }
-
-    // ───────────────────────────────────────────────────────
-    // CLEAR — resets form back to CREATE mode
-    // ───────────────────────────────────────────────────────
-    @FXML
-    private void handleClearForm() {
-        userBeingEdited = null;
-        usernameField.clear();
-        passwordField.clear();
-        roleComboBox.setValue("User");
-        formTitle.setText("Create New User");
-        saveButton.setText("Create User");
-        feedbackLabel.setText("");
-    }
-
-    // ───────────────────────────────────────────────────────
-    // LOGOUT — clears session and goes back to login screen
-    // ───────────────────────────────────────────────────────
-    @FXML
-    private void handleLogout() {
-        SessionManager.getInstance().logout();
-        SceneManager.load("loginView.fxml");
-    }
-
-    // ───────────────────────────────────────────────────────
-    // HELPER — shows green (success) or red (error) feedback
-    // ───────────────────────────────────────────────────────
-    private void showFeedback(String message, boolean success) {
-        feedbackLabel.setText(message);
-        feedbackLabel.setTextFill(success ? Color.web("#2ECC9A") : Color.web("#E53E3E"));
-    }
-}
-*/
-
 package dk.easv.scanova.GUI;
 
 import dk.easv.scanova.BLL.SessionManager;
@@ -239,9 +17,10 @@ import java.util.List;
 
 public class AdminController {
 
-    //Root for CSS-Switch
+    // ── Root for CSS-Switch ────────────────────────────────
     @FXML private BorderPane rootPane;
-    //SideBar Navigation Buttons
+
+    // ── Sidebar Navigation Buttons ─────────────────────────
     @FXML private Button navUsers;
     @FXML private Button navClients;
     @FXML private Button navProfiles;
@@ -250,67 +29,56 @@ public class AdminController {
     @FXML private Button navLogs;
     @FXML private Button navSettings;
 
-    // TopBar labels/buttons
-    @FXML private Label loggedInLabel;
-    @FXML private Label pageTitle;
+    // ── TopBar ─────────────────────────────────────────────
+    @FXML private Label  loggedInLabel;
+    @FXML private Label  pageTitle;
     @FXML private Button themeToggle;
 
-    // //Big Page Header
+    // ── Page Header ────────────────────────────────────────
     @FXML private Label contentTitle;
     @FXML private Label contentSubtitle;
 
-    // Status Cards
+    // ── Status Cards ───────────────────────────────────────
     @FXML private Label statTotalUsers;
     @FXML private Label statAdmins;
     @FXML private Label statUsers;
 
-    // Table(coloumn+countBadge)
-    @FXML private TableView<User> userTable;
+    // ── Table ──────────────────────────────────────────────
+    @FXML private TableView<User>          userTable;
     @FXML private TableColumn<User, Integer> colId;
-    @FXML private TableColumn<User, String> colUsername;
-    @FXML private TableColumn<User, String> colRole;
-    @FXML private Label userCountBadge;
-
+    @FXML private TableColumn<User, String>  colUsername;
+    @FXML private TableColumn<User, String>  colRole;
+    @FXML private Label  userCountBadge;
     @FXML private Button editButton;
     @FXML private Button deleteButton;
 
-    //Form title (Create/Edit User)
-    @FXML private Label formTitle;
-    @FXML private TextField usernameField;
+    // ── Form ───────────────────────────────────────────────
+    @FXML private Label         formTitle;
+    @FXML private TextField     usernameField;
     @FXML private PasswordField passwordField;
     @FXML private ComboBox<String> roleComboBox;
-    @FXML private Label feedbackLabel;
+    @FXML private Label  feedbackLabel;
     @FXML private Button saveButton;
 
-    //Internal State
+    // ── Internal State ─────────────────────────────────────
     private UserManager userManager;
-    private User userBeingEdited = null;
-    private boolean isDarkMode = false;
+    private User    userBeingEdited = null;
+    private boolean isDarkMode      = false;
 
-    private static final String LIGHT_CSS = "styles/light.css";
-    private static final String DARK_CSS = "styles/dark.css";
-
-
+    // ───────────────────────────────────────────────────────
     @FXML
     public void initialize() {
-        try {
-            userManager = new UserManager();
-        } catch (Exception e) {
-            showFeedback("Cannot connect to database: " + e.getMessage(), false);
-            return;
-        }
+        // No try/catch needed — UserManager constructor no longer throws
+        userManager = new UserManager();
 
-        // Logged-in Status
         User current = SessionManager.getInstance().getCurrentUser();
         if (current != null) {
             loggedInLabel.setText(current.getUsername());
         }
 
-        // Role dropdown
         roleComboBox.setItems(FXCollections.observableArrayList("Admin", "User"));
         roleComboBox.setValue("User");
 
-        // Tell column what to show
         colId.setCellValueFactory(d ->
                 new SimpleIntegerProperty(d.getValue().getId()).asObject());
         colUsername.setCellValueFactory(d ->
@@ -321,21 +89,19 @@ public class AdminController {
         loadUsers();
     }
 
-    //Load users
+    // ── Load users ─────────────────────────────────────────
     private void loadUsers() {
         try {
             ObservableList<User> users =
                     FXCollections.observableArrayList(userManager.getAllUsers());
             userTable.setItems(users);
 
-            // Update stats (count admins/regular users)
             long adminCount = users.stream().filter(User::isAdmin).count();
-            long userCount = users.size() - adminCount;
-            //update 3 status badges/cards
+            long userCount  = users.size() - adminCount;
+
             statTotalUsers.setText(String.valueOf(users.size()));
             statAdmins.setText(String.valueOf(adminCount));
             statUsers.setText(String.valueOf(userCount));
-            //update badge next to "ALL ACCOUNTS")
             userCountBadge.setText(String.valueOf(users.size()));
 
         } catch (Exception e) {
@@ -343,20 +109,20 @@ public class AdminController {
         }
     }
 
-    // ── Save (create or update) ────────────────────────────────
+    // ── Save (create or update) ────────────────────────────
     @FXML
     private void handleSaveUser() {
         String username = usernameField.getText().trim();
         String password = passwordField.getText();
-        String role = roleComboBox.getValue();
+        String role     = roleComboBox.getValue();
 
         try {
             if (userBeingEdited == null) {
                 userManager.createUser(username, password, role);
-                showFeedback("User '" + username + "' created!", true);
+                showFeedback("User '" + username + "' created successfully!", true);
             } else {
                 userManager.updateUser(userBeingEdited.getId(), username, password, role);
-                showFeedback("User '" + username + "' updated!", true);
+                showFeedback("User '" + username + "' updated successfully!", true);
             }
             loadUsers();
             handleClearForm();
@@ -365,41 +131,41 @@ public class AdminController {
         }
     }
 
-    // ── Edit ───────────────────────────────────────────────────
+    // ── Edit ───────────────────────────────────────────────
     @FXML
     private void handleEditUser() {
         User selected = userTable.getSelectionModel().getSelectedItem();
         if (selected == null) {
-            showFeedback("Select a user to edit.", false);
+            showFeedback("Please select a user to edit.", false);
             return;
         }
         userBeingEdited = selected;
         usernameField.setText(selected.getUsername());
         passwordField.clear();
         roleComboBox.setValue(selected.getRole());
-        formTitle.setText("Edit user");
-        saveButton.setText("Update user");
-        showFeedback("Editing: " + selected.getUsername() +
-                "\nLeave password blank to keep existing.", true);
+        formTitle.setText("Edit User");
+        saveButton.setText("Update User");
+        showFeedback("Editing: " + selected.getUsername()
+                + " — leave password blank to keep existing.", true);
     }
 
-    // ── Delete ─────────────────────────────────────────────────
+    // ── Delete ─────────────────────────────────────────────
     @FXML
     private void handleDeleteUser() {
         User selected = userTable.getSelectionModel().getSelectedItem();
         if (selected == null) {
-            showFeedback("Select a user to delete.", false);
+            showFeedback("Please select a user to delete.", false);
             return;
         }
         Alert confirm = new Alert(Alert.AlertType.CONFIRMATION);
-        confirm.setTitle("Delete user");
-        confirm.setHeaderText("Delete '" + selected.getUsername() + "'?");
-        confirm.setContentText("This cannot be undone.");
-        confirm.showAndWait().ifPresent(r -> {
-            if (r == ButtonType.OK) {
+        confirm.setTitle("Delete User");
+        confirm.setHeaderText("Delete user '" + selected.getUsername() + "'?");
+        confirm.setContentText("This action cannot be undone.");
+        confirm.showAndWait().ifPresent(response -> {
+            if (response == ButtonType.OK) {
                 try {
                     userManager.deleteUser(selected.getId());
-                    showFeedback("User deleted.", true);
+                    showFeedback("User deleted successfully.", true);
                     loadUsers();
                     handleClearForm();
                 } catch (Exception e) {
@@ -409,19 +175,19 @@ public class AdminController {
         });
     }
 
-    // ── Clear form ─────────────────────────────────────────────
+    // ── Clear form ─────────────────────────────────────────
     @FXML
     public void handleClearForm() {
         userBeingEdited = null;
         usernameField.clear();
         passwordField.clear();
         roleComboBox.setValue("User");
-        formTitle.setText("Create new user");
-        saveButton.setText("Create user");
+        formTitle.setText("Create New User");
+        saveButton.setText("Create User");
         feedbackLabel.setText("");
     }
 
-    // ── Theme toggle ───────────────────────────────────────────
+    // ── Theme toggle ───────────────────────────────────────
     @FXML
     private void handleThemeToggle() {
         isDarkMode = !isDarkMode;
@@ -429,71 +195,36 @@ public class AdminController {
                 isDarkMode ? "/dk/easv/scanova/styles/dark.css"
                         : "/dk/easv/scanova/styles/light.css"
         ).toExternalForm();
-
         rootPane.getStylesheets().clear();
         rootPane.getStylesheets().add(css);
         themeToggle.setText(isDarkMode ? "☀  Light mode" : "☾  Dark mode");
     }
 
-    // ── Logout ─────────────────────────────────────────────────
+    // ── Logout ─────────────────────────────────────────────
     @FXML
     private void handleLogout() {
         SessionManager.getInstance().logout();
         SceneManager.load("loginView.fxml");
     }
 
-    // ── Navigation ─────────────────────────────────────────────
-    @FXML
-    private void handleNavDashboard() {
-        setActivePage("Dashboard", "Overview of the system");
-    }
-
-    @FXML
-    private void handleNavUsers() {
-        setActivePage("Users", "Manage user accounts");
-        loadUsers();
-    }
-
-    @FXML
-    private void handleNavClients() {
-        setActivePage("Clients", "Manage client organisations");
-    }
-
-    @FXML
-    private void handleNavProfiles() {
-        setActivePage("Profiles", "Manage scanning profiles");
-    }
-
-    @FXML
-    private void handleNavBoxes() {
-        setActivePage("Boxes", "View scanned boxes");
-    }
-
-    @FXML
-    private void handleNavDocuments() {
-        setActivePage("Documents", "View scanned documents");
-    }
-
-    @FXML
-    private void handleNavLogs() {
-        setActivePage("Logs", "Audit trail of all actions");
-    }
-
-    @FXML
-    private void handleNavSettings() {
-        setActivePage("Settings", "System configuration");
-    }
+    // ── Navigation ─────────────────────────────────────────
+    @FXML private void handleNavDashboard()  { setActivePage("Dashboard", "Overview of the system");         }
+    @FXML private void handleNavUsers()      { setActivePage("Users",     "Manage user accounts"); loadUsers(); }
+    @FXML private void handleNavClients()    { setActivePage("Clients",   "Manage client organisations");    }
+    @FXML private void handleNavProfiles()   { setActivePage("Profiles",  "Manage scanning profiles");       }
+    @FXML private void handleNavBoxes()      { setActivePage("Boxes",     "View scanned boxes");              }
+    @FXML private void handleNavDocuments()  { setActivePage("Documents", "View scanned documents");         }
+    @FXML private void handleNavLogs()       { setActivePage("Logs",      "Audit trail of all actions");     }
+    @FXML private void handleNavSettings()   { setActivePage("Settings",  "System configuration");           }
 
     private void setActivePage(String title, String subtitle) {
         pageTitle.setText(title);
         contentTitle.setText(title);
         contentSubtitle.setText(subtitle);
 
-        // Reset all nav items then highlight active
         List<Button> navItems = List.of(
                 navUsers, navClients, navProfiles,
-                navBoxes, navDocuments, navLogs, navSettings
-        );
+                navBoxes, navDocuments, navLogs, navSettings);
         navItems.forEach(b -> {
             b.getStyleClass().remove("nav-item-active");
             if (!b.getStyleClass().contains("nav-item"))
@@ -501,13 +232,13 @@ public class AdminController {
         });
 
         switch (title) {
-            case "Users" -> setActive(navUsers);
-            case "Clients" -> setActive(navClients);
-            case "Profiles" -> setActive(navProfiles);
-            case "Boxes" -> setActive(navBoxes);
+            case "Users"     -> setActive(navUsers);
+            case "Clients"   -> setActive(navClients);
+            case "Profiles"  -> setActive(navProfiles);
+            case "Boxes"     -> setActive(navBoxes);
             case "Documents" -> setActive(navDocuments);
-            case "Logs" -> setActive(navLogs);
-            case "Settings" -> setActive(navSettings);
+            case "Logs"      -> setActive(navLogs);
+            case "Settings"  -> setActive(navSettings);
         }
     }
 
@@ -515,11 +246,9 @@ public class AdminController {
         btn.getStyleClass().add("nav-item-active");
     }
 
-    // ── Feedback helper ────────────────────────────────────────
+    // ── Feedback helper ────────────────────────────────────
     private void showFeedback(String message, boolean success) {
         feedbackLabel.setText(message);
-        feedbackLabel.setTextFill(
-                success ? Color.web("#2ECC9A") : Color.web("#E53E3E")
-        );
+        feedbackLabel.setTextFill(success ? Color.web("#2ECC9A") : Color.web("#E53E3E"));
     }
 }
