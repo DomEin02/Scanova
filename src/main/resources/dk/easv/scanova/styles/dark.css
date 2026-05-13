@@ -1,0 +1,287 @@
+/*<--Background-->*/
+.root {
+    -fx-base: #0A0F1A;
+    -fx-background: #0A0F1A;
+    -fx-control-inner-background: #111827;
+    -fx-font-family: "Segoe UI", Arial, sans-serif;
+}
+
+/*<--Sidebar-->*/
+.sidebar {
+    -fx-background-color: linear-gradient(to bottom, #0D1B2E, #0A1628);
+}
+.sidebar-logo {
+    -fx-text-fill: white;
+    -fx-font-size: 20px;
+    -fx-font-weight: bold;
+    -fx-effect: dropshadow(gaussian, rgba(46,204,154,0.4), 10, 0, 0, 0);
+}
+.sidebar-logo-sub {
+    -fx-text-fill: #2ECC9A;
+    -fx-font-size: 9px;
+    -fx-font-weight: bold;
+}
+.nav-section-label {
+    -fx-text-fill: #1E3A5F;
+    -fx-font-size: 9px;
+    -fx-padding: 12 8 4 8;
+}
+.nav-item {
+    -fx-background-color: transparent;
+    -fx-text-fill: #4A6A8A;
+    -fx-font-size: 13px;
+    -fx-cursor: hand;
+    -fx-background-radius: 7;
+    -fx-alignment: CENTER-LEFT;
+    -fx-padding: 9 10 9 16;
+}
+.nav-item:hover {
+    -fx-background-color: rgba(46,204,154,0.06);
+    -fx-text-fill: #8AABD4;
+}
+.nav-item-active {
+    -fx-background-color: linear-gradient(to right, rgba(46,204,154,0.2), rgba(46,204,154,0.05));
+    -fx-text-fill: #2ECC9A;
+    -fx-border-color: rgba(46,204,154,0.4);
+    -fx-border-width: 0 0 0 2.5;
+    -fx-effect: dropshadow(gaussian, rgba(46,204,154,0.2), 12, 0, 4, 0);
+}
+
+/*<--TopBar-->*/
+.topbar {
+    -fx-background-color: linear-gradient(to right, #0D1B2E, #111827);
+    -fx-border-color: transparent transparent rgba(46,204,154,0.2) transparent;
+    -fx-border-width: 0 0 1 0;
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.5), 10, 0, 0, 3);
+}
+.topbar-title {
+    -fx-text-fill: #E2E8F0;
+    -fx-font-size: 15px;
+    -fx-font-weight: bold;
+}
+
+/*<--Content-->*/
+.content-area {
+    -fx-background-color: #0A0F1A;
+    -fx-padding: 24;
+}
+.page-title {
+    -fx-text-fill: #F0F4FF;
+    -fx-font-size: 22px;
+    -fx-font-weight: bold;
+    -fx-effect: dropshadow(gaussian, rgba(46,204,154,0.25), 8, 0, 0, 0);
+}
+.page-subtitle {
+    -fx-text-fill: #3A5A7A;
+    -fx-font-size: 13px;
+}
+
+/*<--StatCards-->*/
+.stat-card {
+    -fx-background-color: linear-gradient(to bottom right, #111827, #0D1B2E);
+    -fx-border-color: rgba(46,204,154,0.25);
+    -fx-border-width: 0.5;
+    -fx-border-radius: 10;
+    -fx-background-radius: 10;
+    -fx-padding: 16 18 16 18;
+    -fx-effect: dropshadow(gaussian, rgba(46,204,154,0.1), 16, 0, 0, 4);
+}
+.stat-card-green {
+    -fx-background-color: linear-gradient(to bottom right, #0D2E20, #0A1E16);
+    -fx-border-color: rgba(46,204,154,0.4);
+    -fx-border-width: 0.5;
+    -fx-border-radius: 10;
+    -fx-background-radius: 10;
+    -fx-padding: 16 18 16 18;
+    -fx-effect: dropshadow(gaussian, rgba(46,204,154,0.3), 20, 0, 0, 4);
+}
+.stat-card-blue {
+    -fx-background-color: linear-gradient(to bottom right, #0D1E3A, #0A1628);
+    -fx-border-color: rgba(99,179,237,0.35);
+    -fx-border-width: 0.5;
+    -fx-border-radius: 10;
+    -fx-background-radius: 10;
+    -fx-padding: 16 18 16 18;
+    -fx-effect: dropshadow(gaussian, rgba(99,179,237,0.2), 16, 0, 0, 4);
+}
+.stat-label {
+    -fx-text-fill: #3A6A5A;
+    -fx-font-size: 10px;
+    -fx-font-weight: bold;
+}
+.stat-label-blue {
+    -fx-text-fill: #3A5A8A;
+    -fx-font-size: 10px;
+    -fx-font-weight: bold;
+}
+.stat-value {
+    -fx-text-fill: #2ECC9A;
+    -fx-font-size: 32px;
+    -fx-font-weight: bold;
+    -fx-effect: dropshadow(gaussian, rgba(46,204,154,0.5), 10, 0, 0, 0);
+}
+.stat-value-blue {
+    -fx-text-fill: #63B3ED;
+    -fx-font-size: 32px;
+    -fx-font-weight: bold;
+    -fx-effect: dropshadow(gaussian, rgba(99,179,237,0.4), 10, 0, 0, 0);
+}
+
+/*<--Panel-->*/
+.panel {
+    -fx-background-color: linear-gradient(to bottom, #111827, #0D1B2E);
+    -fx-border-color: rgba(46,204,154,0.15);
+    -fx-border-width: 0.5;
+    -fx-border-radius: 10;
+    -fx-background-radius: 10;
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.7), 20, 0, 0, 6);
+}
+.panel-title {
+    -fx-text-fill: #E2E8F0;
+    -fx-font-size: 13px;
+    -fx-font-weight: bold;
+}
+.panel-header {
+    -fx-background-color: linear-gradient(to right, rgba(46,204,154,0.08), transparent);
+    -fx-border-color: transparent transparent rgba(46,204,154,0.15) transparent;
+    -fx-border-width: 0 0 0.5 0;
+    -fx-padding: 14 16 14 16;
+}
+
+/*<--Table-->*/
+.table-view {
+    -fx-background-color: transparent;
+    -fx-border-color: transparent;
+}
+.table-view .column-header-background {
+    -fx-background-color: rgba(46,204,154,0.05);
+}
+.table-view .column-header {
+    -fx-background-color: transparent;
+    -fx-border-color: transparent transparent rgba(46,204,154,0.1) transparent;
+    -fx-border-width: 0 0 0.5 0;
+}
+.table-view .column-header .label {
+    -fx-text-fill: #2ECC9A;
+    -fx-font-size: 10px;
+    -fx-font-weight: bold;
+}
+.table-row-cell {
+    -fx-background-color: transparent;
+    -fx-text-fill: #8AABD4;
+    -fx-font-size: 13px;
+    -fx-border-color: transparent transparent rgba(46,204,154,0.05) transparent;
+    -fx-border-width: 0.5;
+}
+.table-row-cell:odd {
+    -fx-background-color: rgba(255,255,255,0.015);
+}
+.table-row-cell:hover {
+    -fx-background-color: rgba(46,204,154,0.08);
+    -fx-text-fill: #E2E8F0;
+}
+.table-row-cell:selected {
+    -fx-background-color: rgba(46,204,154,0.18);
+    -fx-text-fill: #2ECC9A;
+    -fx-effect: dropshadow(gaussian, rgba(46,204,154,0.25), 8, 0, 0, 0);
+}
+.table-view .table-cell {
+    -fx-text-fill: inherit;
+    -fx-padding: 10 14 10 14;
+}
+
+/*<--Buttons-->*/
+.btn-primary {
+    -fx-background-color: linear-gradient(to right, #2ECC9A, #25B589);
+    -fx-text-fill: white;
+    -fx-font-weight: bold;
+    -fx-background-radius: 7;
+    -fx-cursor: hand;
+    -fx-font-size: 13px;
+    -fx-effect: dropshadow(gaussian, rgba(46,204,154,0.5), 12, 0, 0, 3);
+}
+.btn-primary:hover {
+    -fx-background-color: linear-gradient(to right, #33E5AD, #2ECC9A);
+    -fx-effect: dropshadow(gaussian, rgba(46,204,154,0.7), 16, 0, 0, 4);
+}
+.btn-danger {
+    -fx-background-color: linear-gradient(to right, #E53E3E, #C53030);
+    -fx-text-fill: white;
+    -fx-background-radius: 7;
+    -fx-cursor: hand;
+    -fx-font-size: 13px;
+    -fx-effect: dropshadow(gaussian, rgba(229,62,62,0.4), 10, 0, 0, 3);
+}
+.btn-danger:hover {
+    -fx-effect: dropshadow(gaussian, rgba(229,62,62,0.6), 14, 0, 0, 4);
+}
+.btn-secondary {
+    -fx-background-color: rgba(46,204,154,0.07);
+    -fx-text-fill: #6B8BB5;
+    -fx-border-color: rgba(46,204,154,0.2);
+    -fx-border-width: 0.5;
+    -fx-border-radius: 7;
+    -fx-background-radius: 7;
+    -fx-cursor: hand;
+    -fx-font-size: 13px;
+}
+.btn-secondary:hover {
+    -fx-background-color: rgba(46,204,154,0.12);
+    -fx-text-fill: #2ECC9A;
+    -fx-border-color: rgba(46,204,154,0.45);
+    -fx-effect: dropshadow(gaussian, rgba(46,204,154,0.2), 8, 0, 0, 0);
+}
+
+/*<--FormFields-->*/
+.field-label {
+    -fx-text-fill: #4A7A9B;
+    -fx-font-size: 12px;
+    -fx-font-weight: bold;
+}
+.text-field, .password-field {
+    -fx-background-color: rgba(10,15,26,0.9);
+    -fx-border-color: rgba(46,204,154,0.2);
+    -fx-border-width: 0.5;
+    -fx-border-radius: 7;
+    -fx-background-radius: 7;
+    -fx-text-fill: #E2E8F0;
+    -fx-prompt-text-fill: #2A4A6A;
+    -fx-padding: 10;
+}
+.text-field:focused, .password-field:focused {
+    -fx-border-color: #2ECC9A;
+    -fx-border-width: 1.5;
+    -fx-effect: dropshadow(gaussian, rgba(46,204,154,0.3), 10, 0, 0, 0);
+}
+.combo-box {
+    -fx-background-color: rgba(10,15,26,0.9);
+    -fx-border-color: rgba(46,204,154,0.2);
+    -fx-border-width: 0.5;
+    -fx-border-radius: 7;
+    -fx-background-radius: 7;
+}
+.combo-box:focused {
+    -fx-border-color: #2ECC9A;
+}
+
+/*<--Card in SideBar-->*/
+.user-card {
+    -fx-background-color: rgba(46,204,154,0.07);
+    -fx-border-color: rgba(46,204,154,0.2);
+    -fx-border-width: 0.5;
+    -fx-border-radius: 8;
+    -fx-background-radius: 8;
+    -fx-padding: 10 12 10 12;
+}
+
+/*<--Feedback-->*/
+.feedback-success {
+    -fx-text-fill: #2ECC9A;
+    -fx-font-size: 12px;
+    -fx-effect: dropshadow(gaussian, rgba(46,204,154,0.35), 6, 0, 0, 0);
+}
+.feedback-error {
+    -fx-text-fill: #FC8181;
+    -fx-font-size: 12px;
+    -fx-effect: dropshadow(gaussian, rgba(252,129,129,0.25), 4, 0, 0, 0);
+}

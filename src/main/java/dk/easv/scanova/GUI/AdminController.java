@@ -1,4 +1,6 @@
+/*
 package dk.easv.scanova.GUI;
+
 
 import dk.easv.scanova.BLL.SessionManager;
 import dk.easv.scanova.BLL.UserManager;
@@ -19,6 +21,7 @@ import javafx.scene.paint.Color;
  *
  * Mode switches automatically when admin clicks "Edit Selected".
  */
+/*
 public class AdminController {
 
     // ── Table (left side) ──────────────────────────────────
@@ -213,5 +216,310 @@ public class AdminController {
     private void showFeedback(String message, boolean success) {
         feedbackLabel.setText(message);
         feedbackLabel.setTextFill(success ? Color.web("#2ECC9A") : Color.web("#E53E3E"));
+    }
+}
+*/
+
+package dk.easv.scanova.GUI;
+
+import dk.easv.scanova.BLL.SessionManager;
+import dk.easv.scanova.BLL.UserManager;
+import dk.easv.scanova.Model.User;
+import dk.easv.scanova.SceneManager;
+import javafx.beans.property.SimpleIntegerProperty;
+import javafx.beans.property.SimpleStringProperty;
+import javafx.collections.FXCollections;
+import javafx.collections.ObservableList;
+import javafx.fxml.FXML;
+import javafx.scene.control.*;
+import javafx.scene.layout.BorderPane;
+import javafx.scene.paint.Color;
+
+import java.util.List;
+
+public class AdminController {
+
+    //Root for CSS-Switch
+    @FXML private BorderPane rootPane;
+    //SideBar Navigation Buttons
+    @FXML private Button navUsers;
+    @FXML private Button navClients;
+    @FXML private Button navProfiles;
+    @FXML private Button navBoxes;
+    @FXML private Button navDocuments;
+    @FXML private Button navLogs;
+    @FXML private Button navSettings;
+
+    // TopBar labels/buttons
+    @FXML private Label loggedInLabel;
+    @FXML private Label pageTitle;
+    @FXML private Button themeToggle;
+
+    // //Big Page Header
+    @FXML private Label contentTitle;
+    @FXML private Label contentSubtitle;
+
+    // Status Cards
+    @FXML private Label statTotalUsers;
+    @FXML private Label statAdmins;
+    @FXML private Label statUsers;
+
+    // Table(coloumn+countBadge)
+    @FXML private TableView<User> userTable;
+    @FXML private TableColumn<User, Integer> colId;
+    @FXML private TableColumn<User, String> colUsername;
+    @FXML private TableColumn<User, String> colRole;
+    @FXML private Label userCountBadge;
+
+    @FXML private Button editButton;
+    @FXML private Button deleteButton;
+
+    //Form title (Create/Edit User)
+    @FXML private Label formTitle;
+    @FXML private TextField usernameField;
+    @FXML private PasswordField passwordField;
+    @FXML private ComboBox<String> roleComboBox;
+    @FXML private Label feedbackLabel;
+    @FXML private Button saveButton;
+
+    //Internal State
+    private UserManager userManager;
+    private User userBeingEdited = null;
+    private boolean isDarkMode = false;
+
+    private static final String LIGHT_CSS = "styles/light.css";
+    private static final String DARK_CSS = "styles/dark.css";
+
+
+    @FXML
+    public void initialize() {
+        try {
+            userManager = new UserManager();
+        } catch (Exception e) {
+            showFeedback("Cannot connect to database: " + e.getMessage(), false);
+            return;
+        }
+
+        // Logged-in Status
+        User current = SessionManager.getInstance().getCurrentUser();
+        if (current != null) {
+            loggedInLabel.setText(current.getUsername());
+        }
+
+        // Role dropdown
+        roleComboBox.setItems(FXCollections.observableArrayList("Admin", "User"));
+        roleComboBox.setValue("User");
+
+        // Tell column what to show
+        colId.setCellValueFactory(d ->
+                new SimpleIntegerProperty(d.getValue().getId()).asObject());
+        colUsername.setCellValueFactory(d ->
+                new SimpleStringProperty(d.getValue().getUsername()));
+        colRole.setCellValueFactory(d ->
+                new SimpleStringProperty(d.getValue().getRole()));
+
+        loadUsers();
+    }
+
+    //Load users
+    private void loadUsers() {
+        try {
+            ObservableList<User> users =
+                    FXCollections.observableArrayList(userManager.getAllUsers());
+            userTable.setItems(users);
+
+            // Update stats (count admins/regular users)
+            long adminCount = users.stream().filter(User::isAdmin).count();
+            long userCount = users.size() - adminCount;
+            //update 3 status badges/cards
+            statTotalUsers.setText(String.valueOf(users.size()));
+            statAdmins.setText(String.valueOf(adminCount));
+            statUsers.setText(String.valueOf(userCount));
+            //update badge next to "ALL ACCOUNTS")
+            userCountBadge.setText(String.valueOf(users.size()));
+
+        } catch (Exception e) {
+            showFeedback("Could not load users: " + e.getMessage(), false);
+        }
+    }
+
+    // ── Save (create or update) ────────────────────────────────
+    @FXML
+    private void handleSaveUser() {
+        String username = usernameField.getText().trim();
+        String password = passwordField.getText();
+        String role = roleComboBox.getValue();
+
+        try {
+            if (userBeingEdited == null) {
+                userManager.createUser(username, password, role);
+                showFeedback("User '" + username + "' created!", true);
+            } else {
+                userManager.updateUser(userBeingEdited.getId(), username, password, role);
+                showFeedback("User '" + username + "' updated!", true);
+            }
+            loadUsers();
+            handleClearForm();
+        } catch (Exception e) {
+            showFeedback(e.getMessage(), false);
+        }
+    }
+
+    // ── Edit ───────────────────────────────────────────────────
+    @FXML
+    private void handleEditUser() {
+        User selected = userTable.getSelectionModel().getSelectedItem();
+        if (selected == null) {
+            showFeedback("Select a user to edit.", false);
+            return;
+        }
+        userBeingEdited = selected;
+        usernameField.setText(selected.getUsername());
+        passwordField.clear();
+        roleComboBox.setValue(selected.getRole());
+        formTitle.setText("Edit user");
+        saveButton.setText("Update user");
+        showFeedback("Editing: " + selected.getUsername() +
+                "\nLeave password blank to keep existing.", true);
+    }
+
+    // ── Delete ─────────────────────────────────────────────────
+    @FXML
+    private void handleDeleteUser() {
+        User selected = userTable.getSelectionModel().getSelectedItem();
+        if (selected == null) {
+            showFeedback("Select a user to delete.", false);
+            return;
+        }
+        Alert confirm = new Alert(Alert.AlertType.CONFIRMATION);
+        confirm.setTitle("Delete user");
+        confirm.setHeaderText("Delete '" + selected.getUsername() + "'?");
+        confirm.setContentText("This cannot be undone.");
+        confirm.showAndWait().ifPresent(r -> {
+            if (r == ButtonType.OK) {
+                try {
+                    userManager.deleteUser(selected.getId());
+                    showFeedback("User deleted.", true);
+                    loadUsers();
+                    handleClearForm();
+                } catch (Exception e) {
+                    showFeedback("Could not delete: " + e.getMessage(), false);
+                }
+            }
+        });
+    }
+
+    // ── Clear form ─────────────────────────────────────────────
+    @FXML
+    public void handleClearForm() {
+        userBeingEdited = null;
+        usernameField.clear();
+        passwordField.clear();
+        roleComboBox.setValue("User");
+        formTitle.setText("Create new user");
+        saveButton.setText("Create user");
+        feedbackLabel.setText("");
+    }
+
+    // ── Theme toggle ───────────────────────────────────────────
+    @FXML
+    private void handleThemeToggle() {
+        isDarkMode = !isDarkMode;
+        String css = getClass().getResource(
+                isDarkMode ? "/dk/easv/scanova/styles/dark.css"
+                        : "/dk/easv/scanova/styles/light.css"
+        ).toExternalForm();
+
+        rootPane.getStylesheets().clear();
+        rootPane.getStylesheets().add(css);
+        themeToggle.setText(isDarkMode ? "☀  Light mode" : "☾  Dark mode");
+    }
+
+    // ── Logout ─────────────────────────────────────────────────
+    @FXML
+    private void handleLogout() {
+        SessionManager.getInstance().logout();
+        SceneManager.load("loginView.fxml");
+    }
+
+    // ── Navigation ─────────────────────────────────────────────
+    @FXML
+    private void handleNavDashboard() {
+        setActivePage("Dashboard", "Overview of the system");
+    }
+
+    @FXML
+    private void handleNavUsers() {
+        setActivePage("Users", "Manage user accounts");
+        loadUsers();
+    }
+
+    @FXML
+    private void handleNavClients() {
+        setActivePage("Clients", "Manage client organisations");
+    }
+
+    @FXML
+    private void handleNavProfiles() {
+        setActivePage("Profiles", "Manage scanning profiles");
+    }
+
+    @FXML
+    private void handleNavBoxes() {
+        setActivePage("Boxes", "View scanned boxes");
+    }
+
+    @FXML
+    private void handleNavDocuments() {
+        setActivePage("Documents", "View scanned documents");
+    }
+
+    @FXML
+    private void handleNavLogs() {
+        setActivePage("Logs", "Audit trail of all actions");
+    }
+
+    @FXML
+    private void handleNavSettings() {
+        setActivePage("Settings", "System configuration");
+    }
+
+    private void setActivePage(String title, String subtitle) {
+        pageTitle.setText(title);
+        contentTitle.setText(title);
+        contentSubtitle.setText(subtitle);
+
+        // Reset all nav items then highlight active
+        List<Button> navItems = List.of(
+                navUsers, navClients, navProfiles,
+                navBoxes, navDocuments, navLogs, navSettings
+        );
+        navItems.forEach(b -> {
+            b.getStyleClass().remove("nav-item-active");
+            if (!b.getStyleClass().contains("nav-item"))
+                b.getStyleClass().add("nav-item");
+        });
+
+        switch (title) {
+            case "Users" -> setActive(navUsers);
+            case "Clients" -> setActive(navClients);
+            case "Profiles" -> setActive(navProfiles);
+            case "Boxes" -> setActive(navBoxes);
+            case "Documents" -> setActive(navDocuments);
+            case "Logs" -> setActive(navLogs);
+            case "Settings" -> setActive(navSettings);
+        }
+    }
+
+    private void setActive(Button btn) {
+        btn.getStyleClass().add("nav-item-active");
+    }
+
+    // ── Feedback helper ────────────────────────────────────────
+    private void showFeedback(String message, boolean success) {
+        feedbackLabel.setText(message);
+        feedbackLabel.setTextFill(
+                success ? Color.web("#2ECC9A") : Color.web("#E53E3E")
+        );
     }
 }
