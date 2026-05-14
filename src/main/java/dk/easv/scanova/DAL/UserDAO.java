@@ -9,7 +9,7 @@ public class UserDAO {
 
     public List<User> getAllUsers() throws Exception {
         List<User> users = new ArrayList<>();
-        String sql = "SELECT id, username, password, role FROM users";
+        String sql = "SELECT id, username, passwordHash, role FROM users";
 
         try (Connection conn = DBConnector.getConnection();
              Statement st = conn.createStatement();
@@ -19,7 +19,7 @@ public class UserDAO {
                 users.add(new User(
                         rs.getInt("id"),
                         rs.getString("username"),
-                        rs.getString("password"),
+                        rs.getString("passwordHash"),
                         rs.getString("role")
                 ));
             }
@@ -28,7 +28,8 @@ public class UserDAO {
     }
 
     public User getUserByUsername(String username) throws Exception {
-        String sql = "SELECT id, username, password, role FROM users WHERE username = ?";
+        String sql = "SELECT id, username, passwordHash, role " +
+                "FROM users WHERE username = ?";
 
         try (Connection conn = DBConnector.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
@@ -39,7 +40,7 @@ public class UserDAO {
                 return new User(
                         rs.getInt("id"),
                         rs.getString("username"),
-                        rs.getString("password"),
+                        rs.getString("passwordHash"),
                         rs.getString("role")
                 );
             }
@@ -48,7 +49,8 @@ public class UserDAO {
     }
 
     public void createUser(User user) throws Exception {
-        String sql = "INSERT INTO users (username, password, role) VALUES (?, ?, ?)";
+        String sql = "INSERT INTO users (username, passwordHash, role) " +
+                "VALUES (?, ?, ?)";
 
         try (Connection conn = DBConnector.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
@@ -57,11 +59,13 @@ public class UserDAO {
             ps.setString(2, user.getPassword());
             ps.setString(3, user.getRole());
             ps.executeUpdate();
+            System.out.println("User created: " + user.getUsername());
         }
     }
 
     public void updateUser(User user) throws Exception {
-        String sql = "UPDATE users SET username = ?, password = ?, role = ? WHERE id = ?";
+        String sql = "UPDATE users SET username = ?, passwordHash = ?, " +
+                "role = ? WHERE id = ?";
 
         try (Connection conn = DBConnector.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
@@ -75,11 +79,18 @@ public class UserDAO {
     }
 
     public void deleteUser(int userId) throws Exception {
-        String sql = "DELETE FROM users WHERE id = ?";
-
+        // First remove profile assignments — otherwise FK constraint blocks delete
+        String deleteProfiles = "DELETE FROM user_profiles WHERE userId = ?";
         try (Connection conn = DBConnector.getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
+             PreparedStatement ps = conn.prepareStatement(deleteProfiles)) {
+            ps.setInt(1, userId);
+            ps.executeUpdate();
+        }
 
+        // Then delete the user
+        String deleteUser = "DELETE FROM users WHERE id = ?";
+        try (Connection conn = DBConnector.getConnection();
+             PreparedStatement ps = conn.prepareStatement(deleteUser)) {
             ps.setInt(1, userId);
             ps.executeUpdate();
         }

@@ -5,33 +5,42 @@
 
 <VBox xmlns:fx="http://javafx.com/fxml"
       fx:controller="dk.easv.scanova.GUI.ImagePreviewController"
-      spacing="5"
-      alignment="CENTER">
+      spacing="0"
+      alignment="CENTER"
+      maxHeight="700"
+      maxWidth="900"
+      minHeight="700"
+      minWidth="900">
 
     <ToolBar>
         <Label text="Rotation:" />
-
         <Slider fx:id="rotationSlider"
-                min="0"
-                max="360"
+                min="-180"
+                max="180"
                 value="0"
                 blockIncrement="5"
-                majorTickUnit="45"
+                majorTickUnit="90"
                 showTickLabels="true"
                 showTickMarks="true"
-                snapToTicks="true"
-                minorTickCount="0"
+                snapToTicks="false"
+                minorTickCount="4"
                 prefWidth="300"/>
     </ToolBar>
 
     <StackPane fx:id="imageContainer"
-               prefWidth="800"
-               prefHeight="700"
+               prefWidth="900"
+               prefHeight="650"
+               maxWidth="900"
+               maxHeight="650"
+               minWidth="900"
+               minHeight="650"
                style="-fx-background-color: #202020;">
 
         <ImageView fx:id="imageView"
                    preserveRatio="true"
-                   smooth="true"/>
+                   smooth="true"
+                   fitWidth="880"
+                   fitHeight="630"/>
 
     </StackPane>
 

@@ -7,6 +7,7 @@ import java.util.List;
 
 public class UserManager {
 
+    // No throws in constructor — UserDAO uses static DBConnector now
     private final UserDAO userDAO = new UserDAO();
 
     public User login(String username, String password) throws Exception {
@@ -15,10 +16,7 @@ public class UserManager {
 
         User user = userDAO.getUserByUsername(username);
         if (user == null) return null;
-
-        // If password is not BCrypt hashed yet, fall back to plain compare
         if (!PasswordUtil.verify(password, user.getPassword())) return null;
-
         return user;
     }
 

@@ -2,6 +2,7 @@ package dk.easv.scanova.GUI;
 
 import dk.easv.scanova.BLL.SessionManager;
 import dk.easv.scanova.BLL.UserManager;
+import dk.easv.scanova.DAL.ProfileDAO;
 import dk.easv.scanova.Model.User;
 import dk.easv.scanova.SceneManager;
 import javafx.beans.property.SimpleIntegerProperty;
@@ -17,10 +18,10 @@ import java.util.List;
 
 public class AdminController {
 
-    // ── Root for CSS-Switch ────────────────────────────────
+    // ── Root for CSS switch ───────────────────────────────────────────────────
     @FXML private BorderPane rootPane;
 
-    // ── Sidebar Navigation Buttons ─────────────────────────
+    // ── Sidebar navigation ────────────────────────────────────────────────────
     @FXML private Button navUsers;
     @FXML private Button navClients;
     @FXML private Button navProfiles;
@@ -29,45 +30,51 @@ public class AdminController {
     @FXML private Button navLogs;
     @FXML private Button navSettings;
 
-    // ── TopBar ─────────────────────────────────────────────
+    // ── TopBar ────────────────────────────────────────────────────────────────
     @FXML private Label  loggedInLabel;
     @FXML private Label  pageTitle;
     @FXML private Button themeToggle;
 
-    // ── Page Header ────────────────────────────────────────
+    // ── Page header ───────────────────────────────────────────────────────────
     @FXML private Label contentTitle;
     @FXML private Label contentSubtitle;
 
-    // ── Status Cards ───────────────────────────────────────
+    // ── Stats ─────────────────────────────────────────────────────────────────
     @FXML private Label statTotalUsers;
     @FXML private Label statAdmins;
     @FXML private Label statUsers;
+    @FXML private Label userCountBadge;
 
-    // ── Table ──────────────────────────────────────────────
-    @FXML private TableView<User>          userTable;
+    // ── User table ────────────────────────────────────────────────────────────
+    @FXML private TableView<User>            userTable;
     @FXML private TableColumn<User, Integer> colId;
     @FXML private TableColumn<User, String>  colUsername;
     @FXML private TableColumn<User, String>  colRole;
-    @FXML private Label  userCountBadge;
+    @FXML private TableColumn<User, String>  colProfiles;
     @FXML private Button editButton;
     @FXML private Button deleteButton;
 
-    // ── Form ───────────────────────────────────────────────
-    @FXML private Label         formTitle;
-    @FXML private TextField     usernameField;
-    @FXML private PasswordField passwordField;
+    // ── User form ─────────────────────────────────────────────────────────────
+    @FXML private Label            formTitle;
+    @FXML private TextField        usernameField;
+    @FXML private PasswordField    passwordField;
     @FXML private ComboBox<String> roleComboBox;
-    @FXML private Label  feedbackLabel;
-    @FXML private Button saveButton;
+    @FXML private Label            feedbackLabel;
+    @FXML private Button           saveButton;
 
-    // ── Internal State ─────────────────────────────────────
+    // ── Profile assignment ────────────────────────────────────────────────────
+    @FXML private ComboBox<String> profileComboBox;
+    @FXML private Label            assignedProfilesLabel;
+
+    // ── Internal state ────────────────────────────────────────────────────────
     private UserManager userManager;
+    private final ProfileDAO profileDAO = new ProfileDAO();
     private User    userBeingEdited = null;
     private boolean isDarkMode      = false;
 
-    // ───────────────────────────────────────────────────────
     @FXML
     public void initialize() {
+        // Try/catch from version 2 — shows error if DB fails
         try {
             userManager = new UserManager();
         } catch (Exception e) {
@@ -83,6 +90,7 @@ public class AdminController {
         roleComboBox.setItems(FXCollections.observableArrayList("Admin", "User"));
         roleComboBox.setValue("User");
 
+        // Wire table columns
         colId.setCellValueFactory(d ->
                 new SimpleIntegerProperty(d.getValue().getId()).asObject());
         colUsername.setCellValueFactory(d ->
@@ -90,10 +98,33 @@ public class AdminController {
         colRole.setCellValueFactory(d ->
                 new SimpleStringProperty(d.getValue().getRole()));
 
+        // Profiles column — shows all assigned profiles per user
+        if (colProfiles != null) {
+            colProfiles.setCellValueFactory(data -> {
+                try {
+                    List<String> profiles =
+                            profileDAO.getProfilesForUser(data.getValue().getId());
+                    return new SimpleStringProperty(
+                            profiles.isEmpty() ? "None" : String.join(", ", profiles));
+                } catch (Exception e) {
+                    return new SimpleStringProperty("Error");
+                }
+            });
+        }
+
+        // When user selected — show assigned profiles in label
+        userTable.getSelectionModel().selectedItemProperty().addListener(
+                (obs, oldVal, newVal) -> {
+                    if (newVal != null) showAssignedProfiles(newVal);
+                    else if (assignedProfilesLabel != null)
+                        assignedProfilesLabel.setText("");
+                });
+
         loadUsers();
+        loadProfiles();
     }
 
-    // ── Load users ─────────────────────────────────────────
+    // ── Load users ────────────────────────────────────────────────────────────
     private void loadUsers() {
         try {
             ObservableList<User> users =
@@ -113,7 +144,31 @@ public class AdminController {
         }
     }
 
-    // ── Save (create or update) ────────────────────────────
+    // ── Load profiles into ComboBox ───────────────────────────────────────────
+    private void loadProfiles() {
+        try {
+            if (profileComboBox == null) return;
+            profileComboBox.getItems().clear();
+            profileComboBox.getItems().addAll(profileDAO.getAllProfileNames());
+        } catch (Exception e) {
+            showFeedback("Could not load profiles: " + e.getMessage(), false);
+        }
+    }
+
+    // ── Show assigned profiles in label ───────────────────────────────────────
+    private void showAssignedProfiles(User user) {
+        try {
+            if (assignedProfilesLabel == null) return;
+            List<String> profiles = profileDAO.getProfilesForUser(user.getId());
+            assignedProfilesLabel.setText(profiles.isEmpty()
+                    ? "No profiles assigned yet"
+                    : "Assigned: " + String.join(", ", profiles));
+        } catch (Exception e) {
+            assignedProfilesLabel.setText("Could not load assigned profiles");
+        }
+    }
+
+    // ── Save (create or update) ───────────────────────────────────────────────
     @FXML
     private void handleSaveUser() {
         String username = usernameField.getText().trim();
@@ -125,7 +180,8 @@ public class AdminController {
                 userManager.createUser(username, password, role);
                 showFeedback("User '" + username + "' created successfully!", true);
             } else {
-                userManager.updateUser(userBeingEdited.getId(), username, password, role);
+                userManager.updateUser(
+                        userBeingEdited.getId(), username, password, role);
                 showFeedback("User '" + username + "' updated successfully!", true);
             }
             loadUsers();
@@ -135,7 +191,7 @@ public class AdminController {
         }
     }
 
-    // ── Edit ───────────────────────────────────────────────
+    // ── Edit selected user ────────────────────────────────────────────────────
     @FXML
     private void handleEditUser() {
         User selected = userTable.getSelectionModel().getSelectedItem();
@@ -153,7 +209,7 @@ public class AdminController {
                 + " — leave password blank to keep existing.", true);
     }
 
-    // ── Delete ─────────────────────────────────────────────
+    // ── Delete selected user ──────────────────────────────────────────────────
     @FXML
     private void handleDeleteUser() {
         User selected = userTable.getSelectionModel().getSelectedItem();
@@ -163,13 +219,13 @@ public class AdminController {
         }
         Alert confirm = new Alert(Alert.AlertType.CONFIRMATION);
         confirm.setTitle("Delete User");
-        confirm.setHeaderText("Delete user '" + selected.getUsername() + "'?");
-        confirm.setContentText("This action cannot be undone.");
+        confirm.setHeaderText("Delete '" + selected.getUsername() + "'?");
+        confirm.setContentText("This cannot be undone.");
         confirm.showAndWait().ifPresent(response -> {
             if (response == ButtonType.OK) {
                 try {
                     userManager.deleteUser(selected.getId());
-                    showFeedback("User deleted successfully.", true);
+                    showFeedback("User deleted.", true);
                     loadUsers();
                     handleClearForm();
                 } catch (Exception e) {
@@ -179,7 +235,38 @@ public class AdminController {
         });
     }
 
-    // ── Clear form ─────────────────────────────────────────
+    // ── Assign profile to selected user ───────────────────────────────────────
+    @FXML
+    private void handleAssignProfile() {
+        User selected          = userTable.getSelectionModel().getSelectedItem();
+        String selectedProfile = profileComboBox.getValue();
+
+        if (selected == null) {
+            showFeedback("Please select a user from the table first.", false);
+            return;
+        }
+        if (selectedProfile == null) {
+            showFeedback("Please select a profile from the dropdown.", false);
+            return;
+        }
+
+        try {
+            int profileId = profileDAO.getProfileIdByName(selectedProfile);
+            if (profileId == -1) {
+                showFeedback("Profile not found in database.", false);
+                return;
+            }
+            profileDAO.assignProfileToUser(selected.getId(), profileId);
+            showFeedback("Profile '" + selectedProfile + "' assigned to '"
+                    + selected.getUsername() + "'!", true);
+            loadUsers();
+            showAssignedProfiles(selected);
+        } catch (Exception e) {
+            showFeedback("Could not assign profile: " + e.getMessage(), false);
+        }
+    }
+
+    // ── Clear form ────────────────────────────────────────────────────────────
     @FXML
     public void handleClearForm() {
         userBeingEdited = null;
@@ -189,9 +276,10 @@ public class AdminController {
         formTitle.setText("Create New User");
         saveButton.setText("Create User");
         feedbackLabel.setText("");
+        if (assignedProfilesLabel != null) assignedProfilesLabel.setText("");
     }
 
-    // ── Theme toggle ───────────────────────────────────────
+    // ── Theme toggle ──────────────────────────────────────────────────────────
     @FXML
     private void handleThemeToggle() {
         isDarkMode = !isDarkMode;
@@ -204,22 +292,22 @@ public class AdminController {
         themeToggle.setText(isDarkMode ? "☀  Light mode" : "☾  Dark mode");
     }
 
-    // ── Logout ─────────────────────────────────────────────
+    // ── Logout ────────────────────────────────────────────────────────────────
     @FXML
     private void handleLogout() {
         SessionManager.getInstance().logout();
         SceneManager.load("loginView.fxml");
     }
 
-    // ── Navigation ─────────────────────────────────────────
-    @FXML private void handleNavDashboard()  { setActivePage("Dashboard", "Overview of the system");         }
+    // ── Navigation ────────────────────────────────────────────────────────────
+    @FXML private void handleNavDashboard()  { setActivePage("Dashboard", "Overview of the system"); }
     @FXML private void handleNavUsers()      { setActivePage("Users",     "Manage user accounts"); loadUsers(); }
-    @FXML private void handleNavClients()    { setActivePage("Clients",   "Manage client organisations");    }
-    @FXML private void handleNavProfiles()   { setActivePage("Profiles",  "Manage scanning profiles");       }
-    @FXML private void handleNavBoxes()      { setActivePage("Boxes",     "View scanned boxes");              }
-    @FXML private void handleNavDocuments()  { setActivePage("Documents", "View scanned documents");         }
-    @FXML private void handleNavLogs()       { setActivePage("Logs",      "Audit trail of all actions");     }
-    @FXML private void handleNavSettings()   { setActivePage("Settings",  "System configuration");           }
+    @FXML private void handleNavClients()    { setActivePage("Clients",   "Manage client organisations"); }
+    @FXML private void handleNavProfiles()   { setActivePage("Profiles",  "Manage scanning profiles"); }
+    @FXML private void handleNavBoxes()      { setActivePage("Boxes",     "View scanned boxes"); }
+    @FXML private void handleNavDocuments()  { setActivePage("Documents", "View scanned documents"); }
+    @FXML private void handleNavLogs()       { setActivePage("Logs",      "Audit trail of all actions"); }
+    @FXML private void handleNavSettings()   { setActivePage("Settings",  "System configuration"); }
 
     private void setActivePage(String title, String subtitle) {
         pageTitle.setText(title);
@@ -250,9 +338,10 @@ public class AdminController {
         btn.getStyleClass().add("nav-item-active");
     }
 
-    // ── Feedback helper ────────────────────────────────────
+    // ── Feedback helper ───────────────────────────────────────────────────────
     private void showFeedback(String message, boolean success) {
         feedbackLabel.setText(message);
-        feedbackLabel.setTextFill(success ? Color.web("#2ECC9A") : Color.web("#E53E3E"));
+        feedbackLabel.setTextFill(
+                success ? Color.web("#2ECC9A") : Color.web("#E53E3E"));
     }
 }

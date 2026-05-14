@@ -47,7 +47,10 @@
     </left>
 
     <center>
-        <fx:include source="imagePreview.fxml" fx:id="imagePreviewComponent"/>
+        <ScrollPane fitToWidth="true" fitToHeight="true"
+                    hbarPolicy="NEVER" vbarPolicy="NEVER">
+            <fx:include source="imagePreview.fxml" fx:id="imagePreviewComponent"/>
+        </ScrollPane>
     </center>
 
     <bottom>
