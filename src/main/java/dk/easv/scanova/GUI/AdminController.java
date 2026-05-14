@@ -68,8 +68,12 @@ public class AdminController {
     // ───────────────────────────────────────────────────────
     @FXML
     public void initialize() {
-        // No try/catch needed — UserManager constructor no longer throws
-        userManager = new UserManager();
+        try {
+            userManager = new UserManager();
+        } catch (Exception e) {
+            showFeedback("Cannot connect to database: " + e.getMessage(), false);
+            return;
+        }
 
         User current = SessionManager.getInstance().getCurrentUser();
         if (current != null) {
