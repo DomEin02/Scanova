@@ -23,6 +23,12 @@ public class ScanManager {
     private int documentCounter  = 0;
     private int totalAvailable   = 0;
 
+    private String currentBoxId;
+
+    public void setCurrentBoxId(String boxId) {
+        this.currentBoxId = boxId;
+    }
+
     public void initSession() throws Exception {
         totalAvailable   = scannerClient.getTotalCount();
         fileIdCounter    = 0;
@@ -41,7 +47,7 @@ public class ScanManager {
         for (byte[] data : tiffs) {
             if (isBarcode(data)) {
                 System.out.println("  → Barcode! Starting document #" + (documentCounter + 1));
-                documents.add(new Document(++documentCounter));
+                documents.add(new Document(++documentCounter, currentBoxId));
                 // Barcode page is first file in new document
                 fileIdCounter++;
                 ScannedFile barcodeFile = new ScannedFile(fileIdCounter, referenceCounter, data, documentCounter);

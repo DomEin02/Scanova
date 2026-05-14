@@ -123,6 +123,8 @@ public class ScanViewController {
             @Override
             protected Void call() throws Exception {
 
+                scanManager.setCurrentBoxId(boxIdField.getText());
+
                 // Clear old pages before new scan — full chain built in Sprint 3
                 try {
                     pageDAO.clearPages();

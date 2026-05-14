@@ -5,21 +5,37 @@ import java.util.List;
 
 public class Document {
     private int documentId;
-    private List<ScannedFile> files = new ArrayList<>();
+    private String boxId;
 
-    public Document(int documentId) {
+    private List<dk.easv.scanova.Model.ScannedFile> files = new ArrayList<>();
+
+    public Document(int documentId, String boxId) {
+
         this.documentId = documentId;
+        this.boxId = boxId;
     }
 
-    public int getDocumentId() { return documentId; }
-    public List<ScannedFile> getFiles() { return files; }
+    public int getDocumentId() {
+        return documentId;
+    }
 
-    public void addFile(ScannedFile file) {
+    public String getBoxId() {
+        return boxId;
+    }
+
+    public List<dk.easv.scanova.Model.ScannedFile> getFiles() {
+        return files;
+    }
+
+    public void addFile(dk.easv.scanova.Model.ScannedFile file) {
+
         files.add(file);
     }
 
     @Override
     public String toString() {
-        return "Document #" + documentId + " (" + files.size() + " files)";
+        return "Document #" + documentId +
+                " [Box: " + boxId + "] (" +
+                files.size() + " files)";
     }
 }
