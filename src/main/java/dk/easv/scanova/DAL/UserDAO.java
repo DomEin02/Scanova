@@ -9,7 +9,7 @@ public class UserDAO {
 
     public List<User> getAllUsers() throws Exception {
         List<User> users = new ArrayList<>();
-        String sql = "SELECT id, username, passwordHash, role FROM users";
+        String sql = "SELECT id, username, passwordHash, role FROM users WHERE is_active = 1";
 
         try (Connection conn = DBConnector.getConnection();
              Statement st = conn.createStatement();
@@ -28,8 +28,7 @@ public class UserDAO {
     }
 
     public User getUserByUsername(String username) throws Exception {
-        String sql = "SELECT id, username, passwordHash, role " +
-                "FROM users WHERE username = ?";
+        String sql = "SELECT id, username, passwordHash, role FROM users WHERE username = ? AND is_active = 1";
 
         try (Connection conn = DBConnector.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
@@ -79,7 +78,7 @@ public class UserDAO {
     }
 
     public void deleteUser(int userId) throws Exception {
-        // First remove profile assignments — otherwise FK constraint blocks delete
+        // Remove profile assignments first
         String deleteProfiles = "DELETE FROM user_profiles WHERE userId = ?";
         try (Connection conn = DBConnector.getConnection();
              PreparedStatement ps = conn.prepareStatement(deleteProfiles)) {
@@ -87,10 +86,10 @@ public class UserDAO {
             ps.executeUpdate();
         }
 
-        // Then delete the user
-        String deleteUser = "DELETE FROM users WHERE id = ?";
+        // Soft delete — mark as inactive
+        String sql = "UPDATE users SET is_active = 0 WHERE id = ?";
         try (Connection conn = DBConnector.getConnection();
-             PreparedStatement ps = conn.prepareStatement(deleteUser)) {
+             PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setInt(1, userId);
             ps.executeUpdate();
         }

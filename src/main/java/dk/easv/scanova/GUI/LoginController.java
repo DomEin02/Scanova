@@ -35,10 +35,11 @@ public class LoginController {
             return;
         }
 
-        // Temp hardcoded login — works without DB connection
+        // Temp hardcoded login
         if (username.equals("admin") && password.equals("admin123")) {
             User tempUser = new User(1, "admin", "", "Admin");
             SessionManager.getInstance().setCurrentUser(tempUser);
+            log("LOGIN_SUCCESS", 1, "Hardcoded login: admin");
             SceneManager.load("adminView.fxml");
             return;
         }
@@ -46,6 +47,7 @@ public class LoginController {
         if (username.equals("scanner") && password.equals("scan123")) {
             User tempUser = new User(2, "scanner", "", "User");
             SessionManager.getInstance().setCurrentUser(tempUser);
+            log("LOGIN_SUCCESS", 2, "Hardcoded login: scanner");
             SceneManager.load("scanView.fxml");
             return;
         }
@@ -57,10 +59,12 @@ public class LoginController {
             if (user == null) {
                 errorLabel.setText("Incorrect username or password.");
                 passwordField.clear();
+                log("LOGIN_FAILED", -1, "Failed login attempt: " + username);
                 return;
             }
 
             SessionManager.getInstance().setCurrentUser(user);
+            log("LOGIN_SUCCESS", user.getId(), "Login: " + user.getUsername());
 
             if (user.isAdmin()) {
                 SceneManager.load("adminView.fxml");
@@ -70,6 +74,14 @@ public class LoginController {
 
         } catch (Exception e) {
             errorLabel.setText("Something went wrong: " + e.getMessage());
+        }
+    }
+
+    private void log(String action, int userId, String details) {
+        try {
+            new dk.easv.scanova.DAL.LogDAO().insertLog(action, userId, details);
+        } catch (Exception e) {
+            System.out.println("Could not write log: " + e.getMessage());
         }
     }
 }

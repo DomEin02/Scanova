@@ -8,20 +8,27 @@
 
     <top>
         <ToolBar>
-            <Button text="Start Scan" fx:id="startScanButton" onAction="#onStartScan"/>
-            <Button text="Stop" fx:id="stopButton" onAction="#onStopScan"/>
-            <Button text="Review Mode" onAction="#onOpenSlideshow"
+            <Button text="Start Scan (F1)" fx:id="startScanButton"
+                    onAction="#onStartScan"/>
+            <Button text="Stop (F2)" fx:id="stopButton"
+                    onAction="#onStopScan"/>
+            <Button text="Review Mode (F3)" onAction="#onOpenSlideshow"
                     style="-fx-background-color: #1ABC9C;
                            -fx-text-fill: white;
                            -fx-font-weight: bold;
                            -fx-background-radius: 5;"/>
             <Separator />
-            <Button text="Export TIFF" fx:id="exportButton"/>
+            <Button text="Export TIFF (F4)" fx:id="exportButton"/>
             <Separator />
             <Label text="Profile:" />
-            <ComboBox fx:id="profileComboBox" prefWidth="150" />
+            <ComboBox fx:id="profileComboBox" prefWidth="150"
+                      focusTraversable="true"/>
             <Label text="Box ID:" />
-            <TextField fx:id="boxIdField" prefWidth="100" />
+            <TextField fx:id="boxIdField" prefWidth="100"
+                       focusTraversable="true"/>
+            <Separator />
+            <Label text="F1 Scan  F2 Stop  F3 Review  F4 Export  ↑↓ Navigate  Del Remove"
+                   style="-fx-text-fill: #888; -fx-font-size: 10;"/>
             <Separator />
             <Button text="Logout"
                     onAction="#handleLogout"
@@ -39,9 +46,10 @@
                    style="-fx-font-weight: bold; -fx-font-size: 13;"/>
             <ListView fx:id="fileListView" VBox.vgrow="ALWAYS"/>
             <HBox spacing="5">
-                <Button text="↑" fx:id="moveUpButton"/>
-                <Button text="↓" fx:id="moveDownButton"/>
-                <Button text="Delete" fx:id="deleteButton"/>
+                <Button text="↑" fx:id="moveUpButton" onAction="#onMoveUp"/>
+                <Button text="↓" fx:id="moveDownButton" onAction="#onMoveDown"/>
+                <Button text="Delete" fx:id="deleteButton"
+                        onAction="#onDeleteFile"/>
             </HBox>
         </VBox>
     </left>
@@ -49,7 +57,8 @@
     <center>
         <ScrollPane fitToWidth="true" fitToHeight="true"
                     hbarPolicy="NEVER" vbarPolicy="NEVER">
-            <fx:include source="imagePreview.fxml" fx:id="imagePreviewComponent"/>
+            <fx:include source="imagePreview.fxml"
+                        fx:id="imagePreviewComponent"/>
         </ScrollPane>
     </center>
 

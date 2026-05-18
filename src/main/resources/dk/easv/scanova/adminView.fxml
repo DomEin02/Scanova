@@ -104,7 +104,7 @@
 
             <!-- Scrollable content -->
             <center>
-                <ScrollPane fitToWidth="true"
+                <ScrollPane fx:id="contentArea" fitToWidth="true"
                             style="-fx-background-color: transparent;
                                -fx-background: transparent;
                                -fx-border-color: transparent;">
@@ -167,7 +167,6 @@
                                            style="-fx-border-color: transparent;
                                           -fx-background-color: transparent;">
                                     <columns>
-                                        <TableColumn fx:id="colId"       text="ID"               prefWidth="50"/>
                                         <TableColumn fx:id="colUsername" text="Username"          prefWidth="140"/>
                                         <TableColumn fx:id="colRole"     text="Role"              prefWidth="90"/>
                                         <TableColumn fx:id="colProfiles" text="Assigned Profiles" prefWidth="220"/>

@@ -1,0 +1,115 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.geometry.Insets?>
+
+<HBox spacing="16"
+      xmlns="http://javafx.com/javafx/21"
+      xmlns:fx="http://javafx.com/fxml/1"
+      fx:controller="dk.easv.scanova.GUI.ClientController">
+    <padding><Insets top="0" right="0" bottom="0" left="0"/></padding>
+
+    <!-- LEFT — Client table panel -->
+    <VBox styleClass="panel" HBox.hgrow="ALWAYS">
+
+        <!-- Panel header -->
+        <HBox alignment="CENTER_LEFT" spacing="10"
+              style="-fx-padding: 14 16 14 16;
+                     -fx-border-color: transparent transparent #E2E8F0 transparent;
+                     -fx-border-width: 0 0 0.5 0;">
+            <Label text="All Clients" styleClass="panel-title"/>
+            <Label fx:id="clientCountBadge" text="0"
+                   style="-fx-background-color: #F0F2F5;
+                          -fx-text-fill: #718096;
+                          -fx-background-radius: 20;
+                          -fx-padding: 1 8; -fx-font-size: 11px;"/>
+            <Region HBox.hgrow="ALWAYS"/>
+            <Button text="+ New client"
+                    styleClass="btn-primary"
+                    onAction="#handleClearForm"
+                    style="-fx-padding: 6 14; -fx-font-size: 12px;"/>
+        </HBox>
+
+        <!-- Table -->
+        <TableView fx:id="clientTable"
+                   VBox.vgrow="ALWAYS"
+                   prefHeight="320"
+                   style="-fx-border-color: transparent;
+                          -fx-background-color: transparent;">
+            <columns>
+                <TableColumn fx:id="colClientName"
+                             text="Client Name"
+                             prefWidth="400"/>
+            </columns>
+            <placeholder>
+                <Label text="No clients found."
+                       style="-fx-text-fill: #A0AEC0; -fx-font-size: 13px;"/>
+            </placeholder>
+        </TableView>
+
+        <!-- Action buttons -->
+        <HBox spacing="8"
+              style="-fx-padding: 12 16;
+                     -fx-border-color: #E2E8F0 transparent transparent transparent;
+                     -fx-border-width: 0.5 0 0 0;">
+            <Button text="Edit selected"
+                    styleClass="btn-secondary"
+                    onAction="#handleEditClient"
+                    style="-fx-padding: 7 16; -fx-font-size: 12px;"/>
+            <Button text="Deactivate selected"
+                    styleClass="btn-danger"
+                    onAction="#handleDeleteClient"
+                    style="-fx-padding: 7 16; -fx-font-size: 12px;"/>
+        </HBox>
+
+    </VBox>
+
+    <!-- RIGHT — Client form panel -->
+    <VBox styleClass="panel" prefWidth="290">
+
+        <!-- Form header -->
+        <VBox spacing="2"
+              style="-fx-padding: 16 16 14 16;
+                     -fx-border-color: transparent transparent #E2E8F0 transparent;
+                     -fx-border-width: 0 0 0.5 0;">
+            <Label fx:id="formTitle" text="Create new client"
+                   styleClass="panel-title"/>
+            <Label text="Fill in the details below"
+                   style="-fx-text-fill: #A0AEC0; -fx-font-size: 11px;"/>
+        </VBox>
+
+        <!-- Fields -->
+        <VBox spacing="14">
+            <padding><Insets top="16" right="16" bottom="16" left="16"/></padding>
+
+            <VBox spacing="5">
+                <Label text="Client Name"
+                       style="-fx-text-fill: #4A5568; -fx-font-size: 12px;
+                              -fx-font-weight: bold;"/>
+                <TextField fx:id="usernameField"
+                           promptText="e.g. WebLager A/S"
+                           styleClass="text-field"/>
+            </VBox>
+
+            <Label fx:id="feedbackLabel"
+                   text=""
+                   wrapText="true"
+                   style="-fx-font-size: 12px; -fx-min-height: 18;"/>
+
+            <Button fx:id="saveButton"
+                    text="Create client"
+                    styleClass="btn-primary"
+                    onAction="#handleSaveClient"
+                    maxWidth="Infinity"
+                    style="-fx-padding: 10; -fx-font-size: 13px;"/>
+
+            <Button text="Clear form"
+                    styleClass="btn-secondary"
+                    onAction="#handleClearForm"
+                    maxWidth="Infinity"
+                    style="-fx-padding: 10; -fx-font-size: 13px;"/>
+
+        </VBox>
+    </VBox>
+
+</HBox>

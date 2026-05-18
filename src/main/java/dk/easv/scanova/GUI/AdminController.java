@@ -5,11 +5,12 @@ import dk.easv.scanova.BLL.UserManager;
 import dk.easv.scanova.DAL.ProfileDAO;
 import dk.easv.scanova.Model.User;
 import dk.easv.scanova.SceneManager;
-import javafx.beans.property.SimpleIntegerProperty;
+import javafx.application.Platform;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
+import javafx.scene.Node;
 import javafx.scene.control.*;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.paint.Color;
@@ -47,7 +48,6 @@ public class AdminController {
 
     // ── User table ────────────────────────────────────────────────────────────
     @FXML private TableView<User>            userTable;
-    @FXML private TableColumn<User, Integer> colId;
     @FXML private TableColumn<User, String>  colUsername;
     @FXML private TableColumn<User, String>  colRole;
     @FXML private TableColumn<User, String>  colProfiles;
@@ -66,6 +66,10 @@ public class AdminController {
     @FXML private ComboBox<String> profileComboBox;
     @FXML private Label            assignedProfilesLabel;
 
+    // ── Content area ──────────────────────────────────────────────────────────
+    @FXML private ScrollPane contentArea;
+    private Node defaultContent; // saves the original users panel
+
     // ── Internal state ────────────────────────────────────────────────────────
     private UserManager userManager;
     private final ProfileDAO profileDAO = new ProfileDAO();
@@ -74,7 +78,6 @@ public class AdminController {
 
     @FXML
     public void initialize() {
-        // Try/catch from version 2 — shows error if DB fails
         try {
             userManager = new UserManager();
         } catch (Exception e) {
@@ -90,15 +93,12 @@ public class AdminController {
         roleComboBox.setItems(FXCollections.observableArrayList("Admin", "User"));
         roleComboBox.setValue("User");
 
-        // Wire table columns
-        colId.setCellValueFactory(d ->
-                new SimpleIntegerProperty(d.getValue().getId()).asObject());
+        // Wire table columns — no colId per requirements
         colUsername.setCellValueFactory(d ->
                 new SimpleStringProperty(d.getValue().getUsername()));
         colRole.setCellValueFactory(d ->
                 new SimpleStringProperty(d.getValue().getRole()));
 
-        // Profiles column — shows all assigned profiles per user
         if (colProfiles != null) {
             colProfiles.setCellValueFactory(data -> {
                 try {
@@ -112,7 +112,6 @@ public class AdminController {
             });
         }
 
-        // When user selected — show assigned profiles in label
         userTable.getSelectionModel().selectedItemProperty().addListener(
                 (obs, oldVal, newVal) -> {
                     if (newVal != null) showAssignedProfiles(newVal);
@@ -122,6 +121,9 @@ public class AdminController {
 
         loadUsers();
         loadProfiles();
+
+        // Save the default users panel content so we can restore it later
+        Platform.runLater(() -> defaultContent = contentArea.getContent());
     }
 
     // ── Load users ────────────────────────────────────────────────────────────
@@ -218,18 +220,18 @@ public class AdminController {
             return;
         }
         Alert confirm = new Alert(Alert.AlertType.CONFIRMATION);
-        confirm.setTitle("Delete User");
-        confirm.setHeaderText("Delete '" + selected.getUsername() + "'?");
-        confirm.setContentText("This cannot be undone.");
+        confirm.setTitle("Deactivate User");
+        confirm.setHeaderText("Deactivate '" + selected.getUsername() + "'?");
+        confirm.setContentText("The user will be deactivated and cannot log in.");
         confirm.showAndWait().ifPresent(response -> {
             if (response == ButtonType.OK) {
                 try {
                     userManager.deleteUser(selected.getId());
-                    showFeedback("User deleted.", true);
+                    showFeedback("User deactivated.", true);
                     loadUsers();
                     handleClearForm();
                 } catch (Exception e) {
-                    showFeedback("Could not delete: " + e.getMessage(), false);
+                    showFeedback("Could not deactivate: " + e.getMessage(), false);
                 }
             }
         });
@@ -300,14 +302,43 @@ public class AdminController {
     }
 
     // ── Navigation ────────────────────────────────────────────────────────────
-    @FXML private void handleNavDashboard()  { setActivePage("Dashboard", "Overview of the system"); }
-    @FXML private void handleNavUsers()      { setActivePage("Users",     "Manage user accounts"); loadUsers(); }
-    @FXML private void handleNavClients()    { setActivePage("Clients",   "Manage client organisations"); }
-    @FXML private void handleNavProfiles()   { setActivePage("Profiles",  "Manage scanning profiles"); }
-    @FXML private void handleNavBoxes()      { setActivePage("Boxes",     "View scanned boxes"); }
-    @FXML private void handleNavDocuments()  { setActivePage("Documents", "View scanned documents"); }
-    @FXML private void handleNavLogs()       { setActivePage("Logs",      "Audit trail of all actions"); }
-    @FXML private void handleNavSettings()   { setActivePage("Settings",  "System configuration"); }
+    @FXML
+    private void handleNavDashboard() {
+        setActivePage("Dashboard", "Overview of the system");
+        contentArea.setContent(defaultContent);
+    }
+
+    @FXML
+    private void handleNavUsers() {
+        setActivePage("Users", "Manage user accounts");
+        // Restore the original users panel
+        contentArea.setContent(defaultContent);
+        loadUsers();
+    }
+
+    @FXML
+    private void handleNavClients() {
+        setActivePage("Clients", "Manage client organisations");
+        try {
+            javafx.fxml.FXMLLoader loader = new javafx.fxml.FXMLLoader(
+                    getClass().getResource("/dk/easv/scanova/clientView.fxml"));
+            Node view = loader.load();
+            contentArea.setContent(view);
+        } catch (Exception e) {
+            showFeedback("Could not load clients view: " + e.getMessage(), false);
+        }
+    }
+
+    @FXML
+    private void handleNavProfiles() {
+        setActivePage("Profiles", "Manage scanning profiles");
+        // Sprint 3 — load profileView.fxml here
+    }
+
+    @FXML private void handleNavBoxes()     { setActivePage("Boxes",     "View scanned boxes"); }
+    @FXML private void handleNavDocuments() { setActivePage("Documents", "View scanned documents"); }
+    @FXML private void handleNavLogs()      { setActivePage("Logs",      "Audit trail of all actions"); }
+    @FXML private void handleNavSettings()  { setActivePage("Settings",  "System configuration"); }
 
     private void setActivePage(String title, String subtitle) {
         pageTitle.setText(title);
