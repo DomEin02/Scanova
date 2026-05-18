@@ -57,15 +57,16 @@ public class ClientDAO {
     }
 
     public void deleteClient(int id, int deletedByUserId, String clientName) throws Exception {
-        // Check if client has active profiles linked to it
-        String check = "SELECT COUNT(*) FROM profiles WHERE clientId = ? AND is_active = 1";
+        // Check if client has profiles linked to it
+        // Note: is_active not yet on profiles table — check all profiles
+        String check = "SELECT COUNT(*) FROM profiles WHERE clientId = ?";
         try (Connection conn = DBConnector.getConnection();
              PreparedStatement ps = conn.prepareStatement(check)) {
             ps.setInt(1, id);
             ResultSet rs = ps.executeQuery();
             if (rs.next() && rs.getInt(1) > 0) {
                 throw new Exception(
-                        "Cannot deactivate client — deactivate their profiles first.");
+                        "Cannot deactivate client — delete their profiles first.");
             }
         }
 
@@ -78,11 +79,44 @@ public class ClientDAO {
             System.out.println("Client deactivated: " + clientName);
         }
 
-        // Log the action
         log("CLIENT_DEACTIVATED", deletedByUserId, "Client deactivated: " + clientName);
     }
 
-    // ── Internal log helper ───────────────────────────────────────────────────
+    public void reactivateClient(int id, int reactivatedByUserId,
+                                 String clientName) throws Exception {
+        String sql = "UPDATE clients SET is_active = 1 WHERE id = ?";
+        try (Connection conn = DBConnector.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, id);
+            ps.executeUpdate();
+            System.out.println("Client reactivated: " + clientName);
+        }
+        log("CLIENT_REACTIVATED", reactivatedByUserId,
+                "Client reactivated: " + clientName);
+    }
+
+    // Get ALL clients including inactive
+    public List<Client> getAllClientsIncludingInactive() throws Exception {
+        String sql = "SELECT id, name, is_active FROM clients ORDER BY name";
+        List<Client> clients = new ArrayList<>();
+
+        try (Connection conn = DBConnector.getConnection();
+             Statement st = conn.createStatement();
+             ResultSet rs = st.executeQuery(sql)) {
+
+            while (rs.next()) {
+                Client c = new Client(
+                        rs.getInt("id"),
+                        rs.getString("name")
+                );
+                c.setActive(rs.getBoolean("is_active"));
+                clients.add(c);
+            }
+        }
+        return clients;
+    }
+
+    // Internal log helper
     private void log(String action, int userId, String details) {
         try {
             LogDAO logDAO = new LogDAO();

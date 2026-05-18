@@ -1,5 +1,6 @@
 package dk.easv.scanova.GUI;
 
+import dk.easv.scanova.BLL.LogManager;
 import dk.easv.scanova.BLL.SessionManager;
 import dk.easv.scanova.BLL.UserManager;
 import dk.easv.scanova.DAL.ProfileDAO;
@@ -19,10 +20,10 @@ import java.util.List;
 
 public class AdminController {
 
-    // ── Root for CSS switch ───────────────────────────────────────────────────
+    // Root for CSS switch
     @FXML private BorderPane rootPane;
 
-    // ── Sidebar navigation ────────────────────────────────────────────────────
+    // Sidebar navigation
     @FXML private Button navUsers;
     @FXML private Button navClients;
     @FXML private Button navProfiles;
@@ -31,30 +32,31 @@ public class AdminController {
     @FXML private Button navLogs;
     @FXML private Button navSettings;
 
-    // ── TopBar ────────────────────────────────────────────────────────────────
+    // TopBar
     @FXML private Label  loggedInLabel;
     @FXML private Label  pageTitle;
     @FXML private Button themeToggle;
 
-    // ── Page header ───────────────────────────────────────────────────────────
+    // Page header
     @FXML private Label contentTitle;
     @FXML private Label contentSubtitle;
 
-    // ── Stats ─────────────────────────────────────────────────────────────────
+    // Stats
     @FXML private Label statTotalUsers;
     @FXML private Label statAdmins;
     @FXML private Label statUsers;
     @FXML private Label userCountBadge;
 
-    // ── User table ────────────────────────────────────────────────────────────
-    @FXML private TableView<User>            userTable;
-    @FXML private TableColumn<User, String>  colUsername;
-    @FXML private TableColumn<User, String>  colRole;
-    @FXML private TableColumn<User, String>  colProfiles;
+    // User table
+    @FXML private TableView<User>           userTable;
+    @FXML private TableColumn<User, String> colUsername;
+    @FXML private TableColumn<User, String> colRole;
+    @FXML private TableColumn<User, String> colProfiles;
+    @FXML private TableColumn<User, String> colStatus;
     @FXML private Button editButton;
     @FXML private Button deleteButton;
 
-    // ── User form ─────────────────────────────────────────────────────────────
+    // User form
     @FXML private Label            formTitle;
     @FXML private TextField        usernameField;
     @FXML private PasswordField    passwordField;
@@ -62,17 +64,18 @@ public class AdminController {
     @FXML private Label            feedbackLabel;
     @FXML private Button           saveButton;
 
-    // ── Profile assignment ────────────────────────────────────────────────────
+    // Profile assignment
     @FXML private ComboBox<String> profileComboBox;
     @FXML private Label            assignedProfilesLabel;
 
-    // ── Content area ──────────────────────────────────────────────────────────
+    // Content area
     @FXML private ScrollPane contentArea;
-    private Node defaultContent; // saves the original users panel
+    private Node defaultContent;
 
-    // ── Internal state ────────────────────────────────────────────────────────
+    // Internal state
     private UserManager userManager;
     private final ProfileDAO profileDAO = new ProfileDAO();
+    private final LogManager logManager = new LogManager();
     private User    userBeingEdited = null;
     private boolean isDarkMode      = false;
 
@@ -99,6 +102,7 @@ public class AdminController {
         colRole.setCellValueFactory(d ->
                 new SimpleStringProperty(d.getValue().getRole()));
 
+        // Profiles column
         if (colProfiles != null) {
             colProfiles.setCellValueFactory(data -> {
                 try {
@@ -111,7 +115,29 @@ public class AdminController {
                 }
             });
         }
+        if (colStatus != null) {
+            colStatus.setCellValueFactory(d ->
+                    new SimpleStringProperty(
+                            d.getValue().isActive() ? "Active" : "Inactive"));
+            colStatus.setCellFactory(col -> new TableCell<>() {
+                @Override
+                protected void updateItem(String item, boolean empty) {
+                    super.updateItem(item, empty);
+                    if (empty || item == null) {
+                        setText(null);
+                        setStyle("");
+                    } else if (item.equals("Active")) {
+                        setText("✓ Active");
+                        setStyle("-fx-text-fill: #2ECC9A; -fx-font-weight: bold;");
+                    } else {
+                        setText("✗ Inactive");
+                        setStyle("-fx-text-fill: #E53E3E; -fx-font-weight: bold;");
+                    }
+                }
+            });
+        }
 
+        // When user selected — show assigned profiles
         userTable.getSelectionModel().selectedItemProperty().addListener(
                 (obs, oldVal, newVal) -> {
                     if (newVal != null) showAssignedProfiles(newVal);
@@ -122,31 +148,36 @@ public class AdminController {
         loadUsers();
         loadProfiles();
 
-        // Save the default users panel content so we can restore it later
+        // Save default content to restore when clicking Users in sidebar
         Platform.runLater(() -> defaultContent = contentArea.getContent());
     }
 
-    // ── Load users ────────────────────────────────────────────────────────────
+    // Load users
     private void loadUsers() {
         try {
             ObservableList<User> users =
-                    FXCollections.observableArrayList(userManager.getAllUsers());
+                    FXCollections.observableArrayList(
+                            userManager.getAllUsersIncludingInactive());
             userTable.setItems(users);
 
-            long adminCount = users.stream().filter(User::isAdmin).count();
-            long userCount  = users.size() - adminCount;
+            // Stats only count active users
+            long adminCount = users.stream()
+                    .filter(u -> u.isAdmin() && u.isActive()).count();
+            long userCount  = users.stream()
+                    .filter(u -> !u.isAdmin() && u.isActive()).count();
+            long total      = users.stream().filter(User::isActive).count();
 
-            statTotalUsers.setText(String.valueOf(users.size()));
+            statTotalUsers.setText(String.valueOf(total));
             statAdmins.setText(String.valueOf(adminCount));
             statUsers.setText(String.valueOf(userCount));
-            userCountBadge.setText(String.valueOf(users.size()));
+            userCountBadge.setText(String.valueOf(total));
 
         } catch (Exception e) {
             showFeedback("Could not load users: " + e.getMessage(), false);
         }
     }
 
-    // ── Load profiles into ComboBox ───────────────────────────────────────────
+    // Load profiles into ComboBox
     private void loadProfiles() {
         try {
             if (profileComboBox == null) return;
@@ -157,7 +188,7 @@ public class AdminController {
         }
     }
 
-    // ── Show assigned profiles in label ───────────────────────────────────────
+    // Show assigned profiles in label
     private void showAssignedProfiles(User user) {
         try {
             if (assignedProfilesLabel == null) return;
@@ -170,7 +201,7 @@ public class AdminController {
         }
     }
 
-    // ── Save (create or update) ───────────────────────────────────────────────
+    // Save (create or update)
     @FXML
     private void handleSaveUser() {
         String username = usernameField.getText().trim();
@@ -180,6 +211,10 @@ public class AdminController {
         try {
             if (userBeingEdited == null) {
                 userManager.createUser(username, password, role);
+                // GUI → BLL for logging — not GUI → DAL
+                logManager.log("USER_CREATED",
+                        SessionManager.getInstance().getCurrentUser().getId(),
+                        "User created: " + username);
                 showFeedback("User '" + username + "' created successfully!", true);
             } else {
                 userManager.updateUser(
@@ -193,7 +228,7 @@ public class AdminController {
         }
     }
 
-    // ── Edit selected user ────────────────────────────────────────────────────
+    // Edit selected user
     @FXML
     private void handleEditUser() {
         User selected = userTable.getSelectionModel().getSelectedItem();
@@ -211,12 +246,12 @@ public class AdminController {
                 + " — leave password blank to keep existing.", true);
     }
 
-    // ── Delete selected user ──────────────────────────────────────────────────
+    // Deactivate selected user
     @FXML
     private void handleDeleteUser() {
         User selected = userTable.getSelectionModel().getSelectedItem();
         if (selected == null) {
-            showFeedback("Please select a user to delete.", false);
+            showFeedback("Please select a user to deactivate.", false);
             return;
         }
         Alert confirm = new Alert(Alert.AlertType.CONFIRMATION);
@@ -227,6 +262,10 @@ public class AdminController {
             if (response == ButtonType.OK) {
                 try {
                     userManager.deleteUser(selected.getId());
+                    // GUI → BLL for logging — not GUI → DAL
+                    logManager.log("USER_DEACTIVATED",
+                            SessionManager.getInstance().getCurrentUser().getId(),
+                            "User deactivated: " + selected.getUsername());
                     showFeedback("User deactivated.", true);
                     loadUsers();
                     handleClearForm();
@@ -237,7 +276,28 @@ public class AdminController {
         });
     }
 
-    // ── Assign profile to selected user ───────────────────────────────────────
+    @FXML
+    private void handleReactivateUser() {
+        User selected = userTable.getSelectionModel().getSelectedItem();
+        if (selected == null) {
+            showFeedback("Please select a user to reactivate.", false);
+            return;
+        }
+        try {
+            userManager.reactivateUser(selected.getId());
+
+            logManager.log("USER_REACTIVATED",
+                    SessionManager.getInstance().getCurrentUser().getId(),
+                    "User reactivated: " + selected.getUsername());
+            showFeedback("User '" + selected.getUsername()
+                    + "' reactivated!", true);
+            loadUsers();
+        } catch (Exception e) {
+            showFeedback("Could not reactivate: " + e.getMessage(), false);
+        }
+    }
+
+    // Assign profile to selected user
     @FXML
     private void handleAssignProfile() {
         User selected          = userTable.getSelectionModel().getSelectedItem();
@@ -268,7 +328,7 @@ public class AdminController {
         }
     }
 
-    // ── Clear form ────────────────────────────────────────────────────────────
+    // Clear form
     @FXML
     public void handleClearForm() {
         userBeingEdited = null;
@@ -281,7 +341,7 @@ public class AdminController {
         if (assignedProfilesLabel != null) assignedProfilesLabel.setText("");
     }
 
-    // ── Theme toggle ──────────────────────────────────────────────────────────
+    // Theme toggle
     @FXML
     private void handleThemeToggle() {
         isDarkMode = !isDarkMode;
@@ -294,14 +354,14 @@ public class AdminController {
         themeToggle.setText(isDarkMode ? "☀  Light mode" : "☾  Dark mode");
     }
 
-    // ── Logout ────────────────────────────────────────────────────────────────
+    // Logout
     @FXML
     private void handleLogout() {
         SessionManager.getInstance().logout();
         SceneManager.load("loginView.fxml");
     }
 
-    // ── Navigation ────────────────────────────────────────────────────────────
+    // Navigation
     @FXML
     private void handleNavDashboard() {
         setActivePage("Dashboard", "Overview of the system");
@@ -311,7 +371,6 @@ public class AdminController {
     @FXML
     private void handleNavUsers() {
         setActivePage("Users", "Manage user accounts");
-        // Restore the original users panel
         contentArea.setContent(defaultContent);
         loadUsers();
     }
@@ -335,10 +394,18 @@ public class AdminController {
         // Sprint 3 — load profileView.fxml here
     }
 
-    @FXML private void handleNavBoxes()     { setActivePage("Boxes",     "View scanned boxes"); }
-    @FXML private void handleNavDocuments() { setActivePage("Documents", "View scanned documents"); }
-    @FXML private void handleNavLogs()      { setActivePage("Logs",      "Audit trail of all actions"); }
-    @FXML private void handleNavSettings()  { setActivePage("Settings",  "System configuration"); }
+    @FXML private void handleNavBoxes() {
+        setActivePage("Boxes","View scanned boxes");
+    }
+    @FXML private void handleNavDocuments() {
+        setActivePage("Documents","View scanned documents");
+    }
+    @FXML private void handleNavLogs() {
+        setActivePage("Logs","Audit trail of all actions");
+    }
+    @FXML private void handleNavSettings() {
+        setActivePage("Settings","System configuration");
+    }
 
     private void setActivePage(String title, String subtitle) {
         pageTitle.setText(title);
@@ -369,7 +436,7 @@ public class AdminController {
         btn.getStyleClass().add("nav-item-active");
     }
 
-    // ── Feedback helper ───────────────────────────────────────────────────────
+    // Feedback helper
     private void showFeedback(String message, boolean success) {
         feedbackLabel.setText(message);
         feedbackLabel.setTextFill(

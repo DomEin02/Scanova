@@ -1,8 +1,9 @@
 package dk.easv.scanova.GUI;
 
+import dk.easv.scanova.BLL.ClientManager;
 import dk.easv.scanova.BLL.SessionManager;
-import dk.easv.scanova.DAL.ClientDAO;
 import dk.easv.scanova.Model.Client;
+import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
@@ -11,18 +12,18 @@ import javafx.scene.paint.Color;
 
 public class ClientController {
 
-    @FXML private TableView<Client> clientTable;
+    @FXML private TableView<Client>           clientTable;
     @FXML private TableColumn<Client, String> colClientName;
-    @FXML private TextField usernameField;
-    @FXML private Label feedbackLabel;
-    @FXML private Button saveButton;
-    @FXML private Label formTitle;
-    @FXML private Label clientCountBadge;
+    @FXML private TableColumn<Client, String> colClientStatus;
+    @FXML private TextField                   usernameField;
+    @FXML private Label                       feedbackLabel;
+    @FXML private Button                      saveButton;
+    @FXML private Label                       formTitle;
+    @FXML private Label                       clientCountBadge;
 
-    private final ClientDAO clientDAO = new ClientDAO();
+    private final ClientManager clientManager = new ClientManager();
     private Client clientBeingEdited = null;
 
-    // Get current logged in user id for logging
     private int getCurrentUserId() {
         if (SessionManager.getInstance().getCurrentUser() == null) return -1;
         return SessionManager.getInstance().getCurrentUser().getId();
@@ -31,19 +32,42 @@ public class ClientController {
     @FXML
     public void initialize() {
         colClientName.setCellValueFactory(data ->
-                new javafx.beans.property.SimpleStringProperty(
-                        data.getValue().getName()));
+                new SimpleStringProperty(data.getValue().getName()));
+
+        if (colClientStatus != null) {
+            colClientStatus.setCellValueFactory(data ->
+                    new SimpleStringProperty(
+                            data.getValue().isActive() ? "Active" : "Inactive"));
+            colClientStatus.setCellFactory(col -> new TableCell<>() {
+                @Override
+                protected void updateItem(String item, boolean empty) {
+                    super.updateItem(item, empty);
+                    if (empty || item == null) {
+                        setText(null);
+                        setStyle("");
+                    } else if (item.equals("Active")) {
+                        setText("Active");
+                        setStyle("-fx-text-fill: #2ECC9A; -fx-font-weight: bold;");
+                    } else {
+                        setText("Inactive");
+                        setStyle("-fx-text-fill: #E53E3E; -fx-font-weight: bold;");
+                    }
+                }
+            });
+        }
+
         loadClients();
     }
 
     private void loadClients() {
         try {
             ObservableList<Client> clients =
-                    FXCollections.observableArrayList(clientDAO.getAllClients());
+                    FXCollections.observableArrayList(
+                            clientManager.getAllClientsIncludingInactive());
             clientTable.setItems(clients);
-            // Update badge
             if (clientCountBadge != null)
-                clientCountBadge.setText(String.valueOf(clients.size()));
+                clientCountBadge.setText(String.valueOf(
+                        clients.stream().filter(Client::isActive).count()));
         } catch (Exception e) {
             showFeedback("Could not load clients: " + e.getMessage(), false);
         }
@@ -52,25 +76,19 @@ public class ClientController {
     @FXML
     private void handleSaveClient() {
         String name = usernameField.getText().trim();
-
-        if (name.isEmpty()) {
-            showFeedback("Client name cannot be empty.", false);
-            return;
-        }
-
         try {
             if (clientBeingEdited == null) {
-                clientDAO.createClient(name, getCurrentUserId());
+                clientManager.createClient(name, getCurrentUserId());
                 showFeedback("Client '" + name + "' created!", true);
             } else {
-                clientDAO.updateClient(
+                clientManager.updateClient(
                         clientBeingEdited.getId(), name, getCurrentUserId());
                 showFeedback("Client '" + name + "' updated!", true);
             }
             loadClients();
             handleClearForm();
         } catch (Exception e) {
-            showFeedback("Could not save: " + e.getMessage(), false);
+            showFeedback(e.getMessage(), false);
         }
     }
 
@@ -100,12 +118,11 @@ public class ClientController {
         confirm.setTitle("Deactivate Client");
         confirm.setHeaderText("Deactivate '" + selected.getName() + "'?");
         confirm.setContentText(
-                "The client will be deactivated and hidden from the system.");
-
+                "The client will be deactivated and hidden from scanning.");
         confirm.showAndWait().ifPresent(response -> {
             if (response == ButtonType.OK) {
                 try {
-                    clientDAO.deleteClient(
+                    clientManager.deleteClient(
                             selected.getId(),
                             getCurrentUserId(),
                             selected.getName());
@@ -117,6 +134,29 @@ public class ClientController {
                 }
             }
         });
+    }
+
+    @FXML
+    private void handleReactivateClient() {
+        Client selected = clientTable.getSelectionModel().getSelectedItem();
+        if (selected == null) {
+            showFeedback("Please select a client to reactivate.", false);
+            return;
+        }
+        if (selected.isActive()) {
+            showFeedback("Client is already active.", false);
+            return;
+        }
+        try {
+            clientManager.reactivateClient(
+                    selected.getId(),
+                    getCurrentUserId(),
+                    selected.getName());
+            showFeedback("Client '" + selected.getName() + "' reactivated!", true);
+            loadClients();
+        } catch (Exception e) {
+            showFeedback("Could not reactivate: " + e.getMessage(), false);
+        }
     }
 
     @FXML

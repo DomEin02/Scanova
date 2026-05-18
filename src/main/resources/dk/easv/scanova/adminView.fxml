@@ -170,6 +170,7 @@
                                         <TableColumn fx:id="colUsername" text="Username"          prefWidth="140"/>
                                         <TableColumn fx:id="colRole"     text="Role"              prefWidth="90"/>
                                         <TableColumn fx:id="colProfiles" text="Assigned Profiles" prefWidth="220"/>
+                                        <TableColumn fx:id="colStatus" text="Status" prefWidth="80"/>
                                     </columns>
                                     <placeholder>
                                         <Label text="No users found."
@@ -191,6 +192,10 @@
                                             text="Delete selected"
                                             styleClass="btn-danger"
                                             onAction="#handleDeleteUser"
+                                            style="-fx-padding: 7 16; -fx-font-size: 12px;"/>
+                                    <Button text="Reactivate selected"
+                                            styleClass="btn-secondary"
+                                            onAction="#handleReactivateUser"
                                             style="-fx-padding: 7 16; -fx-font-size: 12px;"/>
                                 </HBox>
 

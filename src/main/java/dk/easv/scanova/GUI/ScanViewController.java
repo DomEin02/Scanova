@@ -41,13 +41,12 @@ public class ScanViewController {
     @FXML private ComboBox<String> profileComboBox;
     @FXML private TextField boxIdField;
 
-    private final ObservableList<SidebarItem> sidebarItems =
-            FXCollections.observableArrayList();
+    private final ObservableList<SidebarItem> sidebarItems = FXCollections.observableArrayList();
     private final ScanManager scanManager = new ScanManager();
     private final PageDAO pageDAO = new PageDAO();
     private volatile boolean scanning = false;
 
-    // ── Initialize ────────────────────────────────────────────────────────────
+    // Initialize
     @FXML
     public void initialize() {
         if (!SessionManager.getInstance().isLoggedIn()) {
@@ -118,36 +117,30 @@ public class ScanViewController {
         });
     }
 
-    // ── Keyboard shortcuts ────────────────────────────────────────────────────
+    // Keyboard shortcuts
     private void handleKeyPress(KeyEvent event) {
         switch (event.getCode()) {
-
             case F1 -> {
                 // Only start if profile and box are selected
                 if (!startScanButton.isDisabled()) onStartScan();
                 event.consume();
             }
-
             case F2 -> {
                 onStopScan();
                 event.consume();
             }
-
             case F3 -> {
                 onOpenSlideshow();
                 event.consume();
             }
-
             case F4 -> {
                 statusLabel.setText("Status: Export — coming soon");
                 event.consume();
             }
-
             case DELETE -> {
                 onDeleteFile();
                 event.consume();
             }
-
             case UP -> {
                 int i = fileListView.getSelectionModel().getSelectedIndex();
                 if (i > 0) {
@@ -156,7 +149,6 @@ public class ScanViewController {
                 }
                 event.consume();
             }
-
             case DOWN -> {
                 int i = fileListView.getSelectionModel().getSelectedIndex();
                 if (i < sidebarItems.size() - 1) {
@@ -165,12 +157,11 @@ public class ScanViewController {
                 }
                 event.consume();
             }
-
             default -> {}
         }
     }
 
-    // ── Check if scan can start ───────────────────────────────────────────────
+    // Check if scan can start
     private void checkCanStartScan() {
         boolean hasProfile = profileComboBox.getValue() != null;
         boolean hasBox = boxIdField.getText() != null
@@ -178,13 +169,13 @@ public class ScanViewController {
         startScanButton.setDisable(!(hasProfile && hasBox));
     }
 
-    // ── Check if document header already exists ───────────────────────────────
+    // Check if document header already exists
     private boolean headerExists(int documentId) {
         return sidebarItems.stream()
                 .anyMatch(i -> i.isHeader() && i.getDocumentId() == documentId);
     }
 
-    // ── Move Up ───────────────────────────────────────────────────────────────
+    // Move Up
     @FXML
     private void onMoveUp() {
         int index = fileListView.getSelectionModel().getSelectedIndex();
@@ -194,7 +185,7 @@ public class ScanViewController {
         fileListView.getSelectionModel().select(index - 1);
     }
 
-    // ── Move Down ─────────────────────────────────────────────────────────────
+    // Move Down
     @FXML
     private void onMoveDown() {
         int index = fileListView.getSelectionModel().getSelectedIndex();
@@ -204,7 +195,7 @@ public class ScanViewController {
         fileListView.getSelectionModel().select(index + 1);
     }
 
-    // ── Delete File ───────────────────────────────────────────────────────────
+    // Delete File
     @FXML
     private void onDeleteFile() {
         SidebarItem selected =
@@ -217,7 +208,7 @@ public class ScanViewController {
         statusLabel.setText("Status: File removed");
     }
 
-    // ── Start Scan ────────────────────────────────────────────────────────────
+    // Start Scan
     @FXML
     private void onStartScan() {
         scanning = true;
@@ -313,14 +304,14 @@ public class ScanViewController {
         thread.start();
     }
 
-    // ── Stop Scan ─────────────────────────────────────────────────────────────
+    // Stop Scan
     @FXML
     private void onStopScan() {
         scanning = false;
         statusLabel.setText("Status: Stopped");
     }
 
-    // ── Open Slideshow ────────────────────────────────────────────────────────
+    // Open Slideshow
     @FXML
     private void onOpenSlideshow() {
         List<ScannedFile> allFiles = sidebarItems.stream()
@@ -353,7 +344,7 @@ public class ScanViewController {
         }
     }
 
-    // ── Logout ────────────────────────────────────────────────────────────────
+    // Logout
     @FXML
     private void handleLogout() {
         SessionManager.getInstance().logout();

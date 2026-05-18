@@ -40,6 +40,9 @@
                 <TableColumn fx:id="colClientName"
                              text="Client Name"
                              prefWidth="400"/>
+                <TableColumn fx:id="colClientStatus"
+                             text="Status"
+                             prefWidth="80"/>
             </columns>
             <placeholder>
                 <Label text="No clients found."
@@ -59,6 +62,10 @@
             <Button text="Deactivate selected"
                     styleClass="btn-danger"
                     onAction="#handleDeleteClient"
+                    style="-fx-padding: 7 16; -fx-font-size: 12px;"/>
+            <Button text="Reactivate selected"
+                    styleClass="btn-secondary"
+                    onAction="#handleReactivateClient"
                     style="-fx-padding: 7 16; -fx-font-size: 12px;"/>
         </HBox>
 

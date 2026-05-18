@@ -1,5 +1,6 @@
 package dk.easv.scanova.GUI;
 
+import dk.easv.scanova.BLL.LogManager;
 import dk.easv.scanova.BLL.SessionManager;
 import dk.easv.scanova.BLL.UserManager;
 import dk.easv.scanova.Model.User;
@@ -13,12 +14,13 @@ public class LoginController {
     @FXML private PasswordField passwordField;
     @FXML private Label errorLabel;
 
-    private UserManager userManager;
+    private final UserManager userManager = new UserManager();
+    private final LogManager logManager = new LogManager();
 
     @FXML
     public void initialize() {
         try {
-            userManager = new UserManager();
+            new UserManager();
         } catch (Exception e) {
             errorLabel.setText("Could not connect to database.");
         }
@@ -39,7 +41,7 @@ public class LoginController {
         if (username.equals("admin") && password.equals("admin123")) {
             User tempUser = new User(1, "admin", "", "Admin");
             SessionManager.getInstance().setCurrentUser(tempUser);
-            log("LOGIN_SUCCESS", 1, "Hardcoded login: admin");
+            logManager.log("LOGIN_SUCCESS", 1, "Hardcoded login: admin");
             SceneManager.load("adminView.fxml");
             return;
         }
@@ -47,7 +49,7 @@ public class LoginController {
         if (username.equals("scanner") && password.equals("scan123")) {
             User tempUser = new User(2, "scanner", "", "User");
             SessionManager.getInstance().setCurrentUser(tempUser);
-            log("LOGIN_SUCCESS", 2, "Hardcoded login: scanner");
+            logManager.log("LOGIN_SUCCESS", 2, "Hardcoded login: scanner");
             SceneManager.load("scanView.fxml");
             return;
         }
@@ -59,12 +61,14 @@ public class LoginController {
             if (user == null) {
                 errorLabel.setText("Incorrect username or password.");
                 passwordField.clear();
-                log("LOGIN_FAILED", -1, "Failed login attempt: " + username);
+                logManager.log("LOGIN_FAILED", -1,
+                        "Failed login attempt: " + username);
                 return;
             }
 
             SessionManager.getInstance().setCurrentUser(user);
-            log("LOGIN_SUCCESS", user.getId(), "Login: " + user.getUsername());
+            logManager.log("LOGIN_SUCCESS", user.getId(),
+                    "Login: " + user.getUsername());
 
             if (user.isAdmin()) {
                 SceneManager.load("adminView.fxml");
@@ -74,14 +78,6 @@ public class LoginController {
 
         } catch (Exception e) {
             errorLabel.setText("Something went wrong: " + e.getMessage());
-        }
-    }
-
-    private void log(String action, int userId, String details) {
-        try {
-            new dk.easv.scanova.DAL.LogDAO().insertLog(action, userId, details);
-        } catch (Exception e) {
-            System.out.println("Could not write log: " + e.getMessage());
         }
     }
 }

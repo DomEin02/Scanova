@@ -81,4 +81,12 @@ public class UserManager {
         if (!"Admin".equals(r) && !"User".equals(r))
             throw new Exception("Role must be 'Admin' or 'User'.");
     }
+
+    public void reactivateUser(int userId) throws Exception {
+        userDAO.reactivateUser(userId);
+    }
+
+    public List<User> getAllUsersIncludingInactive() throws Exception {
+        return userDAO.getAllUsersIncludingInactive();
+    }
 }
