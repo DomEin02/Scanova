@@ -13,15 +13,18 @@ import javafx.fxml.FXML;
 import javafx.scene.control.*;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.paint.Color;
+import dk.easv.scanova.BLL.ProfileManager;
+import dk.easv.scanova.Model.Profile;
+import javafx.scene.layout.HBox;
 
 import java.util.List;
 
 public class AdminController {
 
-    // ── Root for CSS switch ───────────────────────────────────────────────────
+    //Root for CSS Switch
     @FXML private BorderPane rootPane;
 
-    // ── Sidebar navigation ────────────────────────────────────────────────────
+    //SideBar Nav
     @FXML private Button navUsers;
     @FXML private Button navClients;
     @FXML private Button navProfiles;
@@ -30,56 +33,88 @@ public class AdminController {
     @FXML private Button navLogs;
     @FXML private Button navSettings;
 
-    // ── TopBar ────────────────────────────────────────────────────────────────
-    @FXML private Label  loggedInLabel;
-    @FXML private Label  pageTitle;
+    //TopBar
+    @FXML private Label loggedInLabel;
+    @FXML private Label pageTitle;
     @FXML private Button themeToggle;
 
-    // ── Page header ───────────────────────────────────────────────────────────
+    //PageHeader
     @FXML private Label contentTitle;
     @FXML private Label contentSubtitle;
 
-    // ── Stats ─────────────────────────────────────────────────────────────────
+    //Status
     @FXML private Label statTotalUsers;
     @FXML private Label statAdmins;
     @FXML private Label statUsers;
     @FXML private Label userCountBadge;
 
-    // ── User table ────────────────────────────────────────────────────────────
-    @FXML private TableView<User>            userTable;
+    //UserTable
+    @FXML private TableView<User> userTable;
     @FXML private TableColumn<User, Integer> colId;
-    @FXML private TableColumn<User, String>  colUsername;
-    @FXML private TableColumn<User, String>  colRole;
-    @FXML private TableColumn<User, String>  colProfiles;
+    @FXML private TableColumn<User, String> colUsername;
+    @FXML private TableColumn<User, String> colRole;
+    @FXML private TableColumn<User, String> colProfiles;
     @FXML private Button editButton;
     @FXML private Button deleteButton;
 
-    // ── User form ─────────────────────────────────────────────────────────────
-    @FXML private Label            formTitle;
-    @FXML private TextField        usernameField;
-    @FXML private PasswordField    passwordField;
+    //UserForm
+    @FXML private Label formTitle;
+    @FXML private TextField usernameField;
+    @FXML private PasswordField passwordField;
     @FXML private ComboBox<String> roleComboBox;
-    @FXML private Label            feedbackLabel;
-    @FXML private Button           saveButton;
+    @FXML private Label feedbackLabel;
+    @FXML private Button saveButton;
 
-    // ── Profile assignment ────────────────────────────────────────────────────
+    //ProfileAssign.
     @FXML private ComboBox<String> profileComboBox;
-    @FXML private Label            assignedProfilesLabel;
+    @FXML private Label assignedProfilesLabel;
 
-    // ── Internal state ────────────────────────────────────────────────────────
+    //ProfileTable
+    @FXML private TableView<Profile> profileTable;
+    @FXML private TableColumn<Profile, Integer> colProfileId;
+    @FXML private TableColumn<Profile, String> colProfileName;
+    @FXML private TableColumn<Profile, Float> colProfileRotation;
+    @FXML private TableColumn<Profile, Float> colProfileBrightness;
+    @FXML private TableColumn<Profile, Integer> colProfileClientId;
+    @FXML private Label profileCountBadge;
+    @FXML private Button profileEditButton;
+    @FXML private Button profileDeleteButton;
+
+    //ProfileForm
+    @FXML private Label profileFormTitle;
+    @FXML private TextField profileNameField;
+    @FXML private Slider profileRotationSlider;
+    @FXML private Label profileRotationValueLabel;
+    @FXML private Slider profileBrightnessSlider;
+    @FXML private Label profileBrightnessValueLabel;
+    @FXML private ComboBox<String> profileClientComboBox;
+    @FXML private Label profileFeedbackLabel;
+    @FXML private Button profileSaveButton;
+    // Show/Hide sections
+    @FXML private HBox usersSection;
+    @FXML private HBox profilesSection;
+
+    //InternalState
     private UserManager userManager;
+    private ProfileManager profileManager;
     private final ProfileDAO profileDAO = new ProfileDAO();
-    private User    userBeingEdited = null;
-    private boolean isDarkMode      = false;
+    private Profile profileBeingEdited = null;
+    private User userBeingEdited = null;
+    private boolean isDarkMode = false;
 
     @FXML
     public void initialize() {
-        // Try/catch from version 2 — shows error if DB fails
+        // Try/catch - error if DB fails
         try {
             userManager = new UserManager();
         } catch (Exception e) {
             showFeedback("Cannot connect to database: " + e.getMessage(), false);
             return;
+        }
+        try {
+            profileManager = new ProfileManager();
+        } catch (Exception e) {
+            showFeedback("Cannot connect: " + e.getMessage(), false);
         }
 
         User current = SessionManager.getInstance().getCurrentUser();
@@ -90,7 +125,7 @@ public class AdminController {
         roleComboBox.setItems(FXCollections.observableArrayList("Admin", "User"));
         roleComboBox.setValue("User");
 
-        // Wire table columns
+        // WireTableColumn
         colId.setCellValueFactory(d ->
                 new SimpleIntegerProperty(d.getValue().getId()).asObject());
         colUsername.setCellValueFactory(d ->
@@ -98,7 +133,7 @@ public class AdminController {
         colRole.setCellValueFactory(d ->
                 new SimpleStringProperty(d.getValue().getRole()));
 
-        // Profiles column — shows all assigned profiles per user
+        // ProfilesColumn — shows all assigned profiles per user
         if (colProfiles != null) {
             colProfiles.setCellValueFactory(data -> {
                 try {
@@ -109,6 +144,111 @@ public class AdminController {
                 } catch (Exception e) {
                     return new SimpleStringProperty("Error");
                 }
+            });
+        }
+
+        //WireProfileTableColumn
+        if (profileTable != null) {
+            colProfileId.setCellValueFactory(d ->
+                    new SimpleIntegerProperty(d.getValue().getId()).asObject());
+
+            colProfileName.setCellValueFactory(d ->
+                    new SimpleStringProperty(d.getValue().getName()));
+
+            colProfileRotation.setCellValueFactory(d ->
+                    new javafx.beans.property.SimpleFloatProperty(
+                            d.getValue().getRotation()).asObject());
+
+            colProfileBrightness.setCellValueFactory(d ->
+                    new javafx.beans.property.SimpleFloatProperty(
+                            d.getValue().getBrightness()).asObject());
+
+            colProfileClientId.setCellValueFactory(d ->
+                    new SimpleIntegerProperty(d.getValue().getClientId()).asObject());
+
+            // Actions column with Edit + Delete buttons per row
+            TableColumn<Profile, Void> actionsCol = new TableColumn<>("Actions");
+            actionsCol.setPrefWidth(160);
+            actionsCol.setCellFactory(col -> new TableCell<>() {
+                private final Button editBtn   = new Button("Edit");
+                private final Button deleteBtn = new Button("Delete");
+                private final HBox   box       = new HBox(6, editBtn, deleteBtn);
+
+                {
+                    editBtn.getStyleClass().add("btn-secondary");
+                    editBtn.setStyle("-fx-font-size: 11px; -fx-padding: 3 10;");
+                    deleteBtn.getStyleClass().add("btn-danger");
+                    deleteBtn.setStyle("-fx-font-size: 11px; -fx-padding: 3 10;");
+
+                    editBtn.setOnAction(e -> {
+                        Profile p = getTableView().getItems().get(getIndex());
+                        profileBeingEdited = p;
+                        profileNameField.setText(p.getName());
+                        profileRotationSlider.setValue(p.getRotation());
+                        profileBrightnessSlider.setValue(p.getBrightness());
+                        profileFormTitle.setText("Edit profile");
+                        profileSaveButton.setText("Update profile");
+                        showProfileFeedback("Editing: " + p.getName(), true);
+                    });
+
+                    deleteBtn.setOnAction(e -> {
+                        Profile p = getTableView().getItems().get(getIndex());
+                        Alert confirm = new Alert(Alert.AlertType.CONFIRMATION);
+                        confirm.setTitle("Delete Profile");
+                        confirm.setHeaderText("Delete '" + p.getName() + "'?");
+                        confirm.setContentText("This cannot be undone.");
+                        confirm.showAndWait().ifPresent(response -> {
+                            if (response == ButtonType.OK) {
+                                try {
+                                    profileManager.deleteProfile(p.getId());
+                                    showProfileFeedback("Profile deleted.", true);
+                                    loadProfileTable();
+                                    handleClearProfileForm();
+                                } catch (Exception ex) {
+                                    showProfileFeedback(
+                                            "Could not delete: " + ex.getMessage(), false);
+                                }
+                            }
+                        });
+                    });
+                }
+
+                @Override
+                protected void updateItem(Void item, boolean empty) {
+                    super.updateItem(item, empty);
+                    setGraphic(empty ? null : box);
+                }
+            });
+            profileTable.getColumns().add(actionsCol);
+
+            loadProfileTable();
+        }
+
+        //ProfileSliders
+        if (profileRotationSlider != null) {
+            profileRotationSlider.setMin(-180);
+            profileRotationSlider.setMax(180);
+            profileRotationSlider.setValue(0);
+            profileRotationSlider.setMajorTickUnit(45);
+            profileRotationSlider.setSnapToTicks(false);
+
+            //Update the label as slider moves
+            profileRotationSlider.valueProperty().addListener((obs, oldVal, newVal) -> {
+                int snapped = ((int) Math.round(newVal.doubleValue() / 5)) * 5;
+                profileRotationSlider.setValue(snapped);
+                profileRotationValueLabel.setText(snapped + "°");
+            });
+        }
+
+        if (profileBrightnessSlider != null) {
+            profileBrightnessSlider.setMin(0.1);
+            profileBrightnessSlider.setMax(3.0);
+            profileBrightnessSlider.setValue(1.0);
+
+            //Update label as slider moves
+            profileBrightnessSlider.valueProperty().addListener((obs, oldVal, newVal) -> {
+                double rounded = Math.round(newVal.doubleValue() * 10.0) / 10.0;
+                profileBrightnessValueLabel.setText(String.valueOf(rounded));
             });
         }
 
@@ -124,7 +264,7 @@ public class AdminController {
         loadProfiles();
     }
 
-    // ── Load users ────────────────────────────────────────────────────────────
+    //LoadUser
     private void loadUsers() {
         try {
             ObservableList<User> users =
@@ -132,7 +272,7 @@ public class AdminController {
             userTable.setItems(users);
 
             long adminCount = users.stream().filter(User::isAdmin).count();
-            long userCount  = users.size() - adminCount;
+            long userCount = users.size() - adminCount;
 
             statTotalUsers.setText(String.valueOf(users.size()));
             statAdmins.setText(String.valueOf(adminCount));
@@ -144,7 +284,7 @@ public class AdminController {
         }
     }
 
-    // ── Load profiles into ComboBox ───────────────────────────────────────────
+    //LoadProfileInCompbox
     private void loadProfiles() {
         try {
             if (profileComboBox == null) return;
@@ -155,7 +295,28 @@ public class AdminController {
         }
     }
 
-    // ── Show assigned profiles in label ───────────────────────────────────────
+    //Load all profiles into the profile table
+    private void loadProfileTable() {
+        try {
+            if (profileTable == null) return;
+
+            ObservableList<Profile> profiles =
+                    FXCollections.observableArrayList(profileManager.getAllProfiles());
+
+            profileTable.setItems(profiles);
+
+            if (profileCountBadge != null)
+                profileCountBadge.setText(String.valueOf(profiles.size()));
+
+        } catch (Exception e) {
+            if (profileFeedbackLabel != null) {
+                profileFeedbackLabel.setText("Could not load profiles: " + e.getMessage());
+                profileFeedbackLabel.setTextFill(Color.web("#E53E3E"));
+            }
+        }
+    }
+
+    //ProfilesInLabel
     private void showAssignedProfiles(User user) {
         try {
             if (assignedProfilesLabel == null) return;
@@ -168,7 +329,7 @@ public class AdminController {
         }
     }
 
-    // ── Save (create or update) ───────────────────────────────────────────────
+    //Save(create/update)
     @FXML
     private void handleSaveUser() {
         String username = usernameField.getText().trim();
@@ -178,20 +339,22 @@ public class AdminController {
         try {
             if (userBeingEdited == null) {
                 userManager.createUser(username, password, role);
+                loadUsers();
+                handleClearForm();
                 showFeedback("User '" + username + "' created successfully!", true);
             } else {
                 userManager.updateUser(
                         userBeingEdited.getId(), username, password, role);
+                loadUsers();
+                handleClearForm();
                 showFeedback("User '" + username + "' updated successfully!", true);
             }
-            loadUsers();
-            handleClearForm();
         } catch (Exception e) {
             showFeedback(e.getMessage(), false);
         }
     }
 
-    // ── Edit selected user ────────────────────────────────────────────────────
+    //EditSelectedUser
     @FXML
     private void handleEditUser() {
         User selected = userTable.getSelectionModel().getSelectedItem();
@@ -209,7 +372,7 @@ public class AdminController {
                 + " — leave password blank to keep existing.", true);
     }
 
-    // ── Delete selected user ──────────────────────────────────────────────────
+    //DeleteSelectedUser
     @FXML
     private void handleDeleteUser() {
         User selected = userTable.getSelectionModel().getSelectedItem();
@@ -235,7 +398,7 @@ public class AdminController {
         });
     }
 
-    // ── Assign profile to selected user ───────────────────────────────────────
+    //AssingProfileToSelectedUser
     @FXML
     private void handleAssignProfile() {
         User selected          = userTable.getSelectionModel().getSelectedItem();
@@ -265,8 +428,112 @@ public class AdminController {
             showFeedback("Could not assign profile: " + e.getMessage(), false);
         }
     }
+    // Save profile — create or update depending on mode
+    @FXML
+    private void handleSaveProfile() {
+        String name       = profileNameField.getText().trim();
+        float  rotation   = (float) profileRotationSlider.getValue();
+        float  brightness = (float) profileBrightnessSlider.getValue();
 
-    // ── Clear form ────────────────────────────────────────────────────────────
+        // Get clientId from the dropdown
+        // For now we use 1 as default until teammate finishes client dropdown
+        int clientId = 1;
+
+        try {
+            if (profileBeingEdited == null) {
+                // CREATE mode
+                profileManager.createProfile(name, rotation, brightness, clientId);
+                showProfileFeedback("Profile '" + name + "' created!", true);
+            } else {
+                // EDIT mode
+                profileManager.updateProfile(
+                        profileBeingEdited.getId(), name, rotation, brightness, clientId);
+                showProfileFeedback("Profile '" + name + "' updated!", true);
+            }
+
+            loadProfileTable();
+            handleClearProfileForm();
+
+        } catch (Exception e) {
+            showProfileFeedback(e.getMessage(), false);
+        }
+    }
+
+    // Edit selected profile — fills form with existing data
+    @FXML
+    private void handleEditProfile() {
+        Profile selected = profileTable.getSelectionModel().getSelectedItem();
+
+        if (selected == null) {
+            showProfileFeedback("Please select a profile to edit.", false);
+            return;
+        }
+
+        // Switch to EDIT mode
+        profileBeingEdited = selected;
+
+        // Fill the form with existing data
+        profileNameField.setText(selected.getName());
+        profileRotationSlider.setValue(selected.getRotation());
+        profileBrightnessSlider.setValue(selected.getBrightness());
+
+        // Update form title and button
+        profileFormTitle.setText("Edit profile");
+        profileSaveButton.setText("Update profile");
+
+        showProfileFeedback("Editing: " + selected.getName(), true);
+    }
+
+    @FXML
+    private void handleDeleteProfile() {
+        Profile selected = profileTable.getSelectionModel().getSelectedItem();
+        if (selected == null) {
+            showProfileFeedback("Please select a profile to delete.", false);
+            return;
+        }
+        Alert confirm = new Alert(Alert.AlertType.CONFIRMATION);
+        confirm.setTitle("Delete Profile");
+        confirm.setHeaderText("Delete '" + selected.getName() + "'?");
+        confirm.setContentText("This cannot be undone.");
+        confirm.showAndWait().ifPresent(response -> {
+            if (response == ButtonType.OK) {
+                try {
+                    profileManager.deleteProfile(selected.getId());
+                    showProfileFeedback("Profile deleted.", true);
+                    loadProfileTable();
+                    handleClearProfileForm();
+                } catch (Exception e) {
+                    showProfileFeedback("Could not delete: " + e.getMessage(), false);
+                }
+            }
+        });
+    }
+
+    // Clear the profile form — reset to create mode
+    @FXML
+    public void handleClearProfileForm() {
+        profileBeingEdited = null;
+
+        if (profileNameField != null)
+            profileNameField.clear();
+
+        if (profileRotationSlider != null)
+            profileRotationSlider.setValue(0);
+
+        if (profileBrightnessSlider != null)
+            profileBrightnessSlider.setValue(1.0);
+
+        if (profileFormTitle != null)
+            profileFormTitle.setText("Create new profile");
+
+        if (profileSaveButton != null)
+            profileSaveButton.setText("Create profile");
+
+        if (profileFeedbackLabel != null)
+            profileFeedbackLabel.setText("");
+    }
+
+    // ClearForm
     @FXML
     public void handleClearForm() {
         userBeingEdited = null;
@@ -279,7 +546,7 @@ public class AdminController {
         if (assignedProfilesLabel != null) assignedProfilesLabel.setText("");
     }
 
-    // ── Theme toggle ──────────────────────────────────────────────────────────
+    //Light/Dark ThemeToggle
     @FXML
     private void handleThemeToggle() {
         isDarkMode = !isDarkMode;
@@ -292,18 +559,32 @@ public class AdminController {
         themeToggle.setText(isDarkMode ? "☀  Light mode" : "☾  Dark mode");
     }
 
-    // ── Logout ────────────────────────────────────────────────────────────────
+    //LogOut
     @FXML
     private void handleLogout() {
         SessionManager.getInstance().logout();
         SceneManager.load("loginView.fxml");
     }
 
-    // ── Navigation ────────────────────────────────────────────────────────────
+    //Nav
     @FXML private void handleNavDashboard()  { setActivePage("Dashboard", "Overview of the system"); }
-    @FXML private void handleNavUsers()      { setActivePage("Users",     "Manage user accounts"); loadUsers(); }
+    @FXML private void handleNavUsers() {
+        setActivePage("Users", "Manage user accounts");
+        usersSection.setVisible(true);
+        usersSection.setManaged(true);
+        profilesSection.setVisible(false);
+        profilesSection.setManaged(false);
+        loadUsers();
+    }
+    @FXML private void handleNavProfiles() {
+        setActivePage("Profiles", "Manage scanning profiles");
+        usersSection.setVisible(false);
+        usersSection.setManaged(false);
+        profilesSection.setVisible(true);
+        profilesSection.setManaged(true);
+        loadProfileTable();
+    }
     @FXML private void handleNavClients()    { setActivePage("Clients",   "Manage client organisations"); }
-    @FXML private void handleNavProfiles()   { setActivePage("Profiles",  "Manage scanning profiles"); }
     @FXML private void handleNavBoxes()      { setActivePage("Boxes",     "View scanned boxes"); }
     @FXML private void handleNavDocuments()  { setActivePage("Documents", "View scanned documents"); }
     @FXML private void handleNavLogs()       { setActivePage("Logs",      "Audit trail of all actions"); }
@@ -338,10 +619,18 @@ public class AdminController {
         btn.getStyleClass().add("nav-item-active");
     }
 
-    // ── Feedback helper ───────────────────────────────────────────────────────
+    //Feedback
     private void showFeedback(String message, boolean success) {
         feedbackLabel.setText(message);
         feedbackLabel.setTextFill(
+                success ? Color.web("#2ECC9A") : Color.web("#E53E3E"));
+    }
+
+    // Profile-specific feedback
+    private void showProfileFeedback(String message, boolean success) {
+        if (profileFeedbackLabel == null) return;
+        profileFeedbackLabel.setText(message);
+        profileFeedbackLabel.setTextFill(
                 success ? Color.web("#2ECC9A") : Color.web("#E53E3E"));
     }
 }

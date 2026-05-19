@@ -35,21 +35,6 @@ public class LoginController {
             return;
         }
 
-        // Temp hardcoded login — works without DB connection
-        if (username.equals("admin") && password.equals("admin123")) {
-            User tempUser = new User(1, "admin", "", "Admin");
-            SessionManager.getInstance().setCurrentUser(tempUser);
-            SceneManager.load("adminView.fxml");
-            return;
-        }
-
-        if (username.equals("scanner") && password.equals("scan123")) {
-            User tempUser = new User(2, "scanner", "", "User");
-            SessionManager.getInstance().setCurrentUser(tempUser);
-            SceneManager.load("scanView.fxml");
-            return;
-        }
-
         // Real DB login
         try {
             User user = userManager.login(username, password);

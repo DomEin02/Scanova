@@ -44,14 +44,14 @@ class ScanManagerTest {
     // Test that a new document starts with 0 files
     @Test
     void newDocument_shouldHaveNoFiles() {
-        Document doc = new Document(1);
+        Document doc = new Document(1, "BOX-001");
         assertEquals(0, doc.getFiles().size());
     }
 
     // Test that we can add a file to a document
     @Test
     void addFile_shouldIncreaseFileCount() {
-        Document doc = new Document(1);
+        Document doc = new Document(1, "BOX-001");
         ScannedFile file = new ScannedFile(1, 1, new byte[]{1}, 1);
         doc.addFile(file);
         assertEquals(1, doc.getFiles().size());
