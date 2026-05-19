@@ -17,13 +17,14 @@ import javafx.scene.layout.BorderPane;
 import javafx.scene.paint.Color;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 public class AdminController {
 
-    // Root for CSS switch
+    // ── Root for CSS switch ───────────────────────────────────────────────────
     @FXML private BorderPane rootPane;
 
-    // Sidebar navigation
+    // ── Sidebar navigation ────────────────────────────────────────────────────
     @FXML private Button navUsers;
     @FXML private Button navClients;
     @FXML private Button navProfiles;
@@ -32,22 +33,28 @@ public class AdminController {
     @FXML private Button navLogs;
     @FXML private Button navSettings;
 
-    // TopBar
+    // ── TopBar ────────────────────────────────────────────────────────────────
     @FXML private Label  loggedInLabel;
+    @FXML private Label  loggedInRole;
+    @FXML private Label  loggedInTime;
     @FXML private Label  pageTitle;
     @FXML private Button themeToggle;
 
-    // Page header
+    // ── Page header ───────────────────────────────────────────────────────────
     @FXML private Label contentTitle;
     @FXML private Label contentSubtitle;
 
-    // Stats
+    // ── Stats ─────────────────────────────────────────────────────────────────
     @FXML private Label statTotalUsers;
     @FXML private Label statAdmins;
     @FXML private Label statUsers;
     @FXML private Label userCountBadge;
 
-    // User table
+    // ── Search and filter ─────────────────────────────────────────────────────
+    @FXML private TextField        searchField;
+    @FXML private ComboBox<String> roleFilterComboBox;
+
+    // ── User table ────────────────────────────────────────────────────────────
     @FXML private TableView<User>           userTable;
     @FXML private TableColumn<User, String> colUsername;
     @FXML private TableColumn<User, String> colRole;
@@ -56,7 +63,7 @@ public class AdminController {
     @FXML private Button editButton;
     @FXML private Button deleteButton;
 
-    // User form
+    // ── User form ─────────────────────────────────────────────────────────────
     @FXML private Label            formTitle;
     @FXML private TextField        usernameField;
     @FXML private PasswordField    passwordField;
@@ -64,20 +71,23 @@ public class AdminController {
     @FXML private Label            feedbackLabel;
     @FXML private Button           saveButton;
 
-    // Profile assignment
+    // ── Profile assignment ────────────────────────────────────────────────────
     @FXML private ComboBox<String> profileComboBox;
     @FXML private Label            assignedProfilesLabel;
 
-    // Content area
+    // ── Content area ──────────────────────────────────────────────────────────
     @FXML private ScrollPane contentArea;
     private Node defaultContent;
 
-    // Internal state
+    // ── Internal state ────────────────────────────────────────────────────────
     private UserManager userManager;
     private final ProfileDAO profileDAO = new ProfileDAO();
     private final LogManager logManager = new LogManager();
     private User    userBeingEdited = null;
     private boolean isDarkMode      = false;
+
+    // Full unfiltered user list — needed for search/filter
+    private ObservableList<User> allUsers = FXCollections.observableArrayList();
 
     @FXML
     public void initialize() {
@@ -88,15 +98,27 @@ public class AdminController {
             return;
         }
 
+        // Show logged in user info
         User current = SessionManager.getInstance().getCurrentUser();
         if (current != null) {
             loggedInLabel.setText(current.getUsername());
+            if (loggedInRole != null)
+                loggedInRole.setText(current.isAdmin() ? "Administrator" : "Scanner User");
+            if (loggedInTime != null)
+                loggedInTime.setText("Since: "
+                        + SessionManager.getInstance().getLoginTime());
         }
 
+        // Role dropdown for form
         roleComboBox.setItems(FXCollections.observableArrayList("Admin", "User"));
         roleComboBox.setValue("User");
 
-        // Wire table columns — no colId per requirements
+        // Role filter dropdown
+        roleFilterComboBox.setItems(
+                FXCollections.observableArrayList("All", "Admin", "User"));
+        roleFilterComboBox.setValue("All");
+
+        // Wire table columns
         colUsername.setCellValueFactory(d ->
                 new SimpleStringProperty(d.getValue().getUsername()));
         colRole.setCellValueFactory(d ->
@@ -115,6 +137,8 @@ public class AdminController {
                 }
             });
         }
+
+        // Status column
         if (colStatus != null) {
             colStatus.setCellValueFactory(d ->
                     new SimpleStringProperty(
@@ -127,10 +151,10 @@ public class AdminController {
                         setText(null);
                         setStyle("");
                     } else if (item.equals("Active")) {
-                        setText("✓ Active");
+                        setText("Active");
                         setStyle("-fx-text-fill: #2ECC9A; -fx-font-weight: bold;");
                     } else {
-                        setText("✗ Inactive");
+                        setText("Inactive");
                         setStyle("-fx-text-fill: #E53E3E; -fx-font-weight: bold;");
                     }
                 }
@@ -145,39 +169,75 @@ public class AdminController {
                         assignedProfilesLabel.setText("");
                 });
 
+        // Search — filter live as user types
+        searchField.textProperty().addListener(
+                (obs, old, val) -> applyFilters());
+
+        // Role filter — filter when selection changes
+        roleFilterComboBox.valueProperty().addListener(
+                (obs, old, val) -> applyFilters());
+
         loadUsers();
         loadProfiles();
 
-        // Save default content to restore when clicking Users in sidebar
+        // Save default content to restore when clicking Users
         Platform.runLater(() -> defaultContent = contentArea.getContent());
     }
 
-    // Load users
+    // ── Load users ────────────────────────────────────────────────────────────
     private void loadUsers() {
         try {
-            ObservableList<User> users =
-                    FXCollections.observableArrayList(
-                            userManager.getAllUsersIncludingInactive());
-            userTable.setItems(users);
+            allUsers = FXCollections.observableArrayList(
+                    userManager.getAllUsersIncludingInactive());
+            userTable.setItems(allUsers);
 
-            // Stats only count active users
-            long adminCount = users.stream()
+            long adminCount = allUsers.stream()
                     .filter(u -> u.isAdmin() && u.isActive()).count();
-            long userCount  = users.stream()
+            long userCount  = allUsers.stream()
                     .filter(u -> !u.isAdmin() && u.isActive()).count();
-            long total      = users.stream().filter(User::isActive).count();
+            long total      = allUsers.stream().filter(User::isActive).count();
 
             statTotalUsers.setText(String.valueOf(total));
             statAdmins.setText(String.valueOf(adminCount));
             statUsers.setText(String.valueOf(userCount));
-            userCountBadge.setText(String.valueOf(total));
+            userCountBadge.setText(String.valueOf(allUsers.size()));
 
         } catch (Exception e) {
             showFeedback("Could not load users: " + e.getMessage(), false);
         }
     }
 
-    // Load profiles into ComboBox
+    // ── Apply search + role filter ────────────────────────────────────────────
+    private void applyFilters() {
+        String search = searchField.getText() == null
+                ? "" : searchField.getText().toLowerCase().trim();
+        String role   = roleFilterComboBox.getValue();
+
+        ObservableList<User> filtered = allUsers.stream()
+                .filter(u -> {
+                    boolean matchesSearch = search.isEmpty()
+                            || u.getUsername().toLowerCase().contains(search);
+                    boolean matchesRole = role == null
+                            || role.equals("All")
+                            || u.getRole().equalsIgnoreCase(role);
+                    return matchesSearch && matchesRole;
+                })
+                .collect(Collectors.toCollection(FXCollections::observableArrayList));
+
+        userTable.setItems(filtered);
+        userCountBadge.setText(String.valueOf(filtered.size()));
+    }
+
+    // ── Clear search and filter ───────────────────────────────────────────────
+    @FXML
+    private void handleClearSearch() {
+        searchField.clear();
+        roleFilterComboBox.setValue("All");
+        userTable.setItems(allUsers);
+        userCountBadge.setText(String.valueOf(allUsers.size()));
+    }
+
+    // ── Load profiles into ComboBox ───────────────────────────────────────────
     private void loadProfiles() {
         try {
             if (profileComboBox == null) return;
@@ -188,7 +248,7 @@ public class AdminController {
         }
     }
 
-    // Show assigned profiles in label
+    // ── Show assigned profiles in label ───────────────────────────────────────
     private void showAssignedProfiles(User user) {
         try {
             if (assignedProfilesLabel == null) return;
@@ -201,7 +261,7 @@ public class AdminController {
         }
     }
 
-    // Save (create or update)
+    // ── Save (create or update) ───────────────────────────────────────────────
     @FXML
     private void handleSaveUser() {
         String username = usernameField.getText().trim();
@@ -211,7 +271,6 @@ public class AdminController {
         try {
             if (userBeingEdited == null) {
                 userManager.createUser(username, password, role);
-                // GUI → BLL for logging — not GUI → DAL
                 logManager.log("USER_CREATED",
                         SessionManager.getInstance().getCurrentUser().getId(),
                         "User created: " + username);
@@ -228,7 +287,7 @@ public class AdminController {
         }
     }
 
-    // Edit selected user
+    // ── Edit selected user ────────────────────────────────────────────────────
     @FXML
     private void handleEditUser() {
         User selected = userTable.getSelectionModel().getSelectedItem();
@@ -246,7 +305,7 @@ public class AdminController {
                 + " — leave password blank to keep existing.", true);
     }
 
-    // Deactivate selected user
+    // ── Deactivate selected user ──────────────────────────────────────────────
     @FXML
     private void handleDeleteUser() {
         User selected = userTable.getSelectionModel().getSelectedItem();
@@ -262,7 +321,6 @@ public class AdminController {
             if (response == ButtonType.OK) {
                 try {
                     userManager.deleteUser(selected.getId());
-                    // GUI → BLL for logging — not GUI → DAL
                     logManager.log("USER_DEACTIVATED",
                             SessionManager.getInstance().getCurrentUser().getId(),
                             "User deactivated: " + selected.getUsername());
@@ -276,6 +334,7 @@ public class AdminController {
         });
     }
 
+    // ── Reactivate selected user ──────────────────────────────────────────────
     @FXML
     private void handleReactivateUser() {
         User selected = userTable.getSelectionModel().getSelectedItem();
@@ -285,7 +344,6 @@ public class AdminController {
         }
         try {
             userManager.reactivateUser(selected.getId());
-
             logManager.log("USER_REACTIVATED",
                     SessionManager.getInstance().getCurrentUser().getId(),
                     "User reactivated: " + selected.getUsername());
@@ -297,7 +355,7 @@ public class AdminController {
         }
     }
 
-    // Assign profile to selected user
+    // ── Assign profile to selected user ───────────────────────────────────────
     @FXML
     private void handleAssignProfile() {
         User selected          = userTable.getSelectionModel().getSelectedItem();
@@ -328,7 +386,7 @@ public class AdminController {
         }
     }
 
-    // Clear form
+    // ── Clear form ────────────────────────────────────────────────────────────
     @FXML
     public void handleClearForm() {
         userBeingEdited = null;
@@ -341,7 +399,7 @@ public class AdminController {
         if (assignedProfilesLabel != null) assignedProfilesLabel.setText("");
     }
 
-    // Theme toggle
+    // ── Theme toggle ──────────────────────────────────────────────────────────
     @FXML
     private void handleThemeToggle() {
         isDarkMode = !isDarkMode;
@@ -354,14 +412,14 @@ public class AdminController {
         themeToggle.setText(isDarkMode ? "☀  Light mode" : "☾  Dark mode");
     }
 
-    // Logout
+    // ── Logout ────────────────────────────────────────────────────────────────
     @FXML
     private void handleLogout() {
         SessionManager.getInstance().logout();
         SceneManager.load("loginView.fxml");
     }
 
-    // Navigation
+    // ── Navigation ────────────────────────────────────────────────────────────
     @FXML
     private void handleNavDashboard() {
         setActivePage("Dashboard", "Overview of the system");
@@ -394,18 +452,25 @@ public class AdminController {
         // Sprint 3 — load profileView.fxml here
     }
 
-    @FXML private void handleNavBoxes() {
-        setActivePage("Boxes","View scanned boxes");
+    @FXML
+    private void handleNavLogs() {
+        setActivePage("Logs", "Audit trail of all actions");
+        try {
+            javafx.fxml.FXMLLoader loader = new javafx.fxml.FXMLLoader(
+                    getClass().getResource("/dk/easv/scanova/logView.fxml"));
+            Node view = loader.load();
+            contentArea.setContent(view);
+        } catch (Exception e) {
+            showFeedback("Could not load logs view: " + e.getMessage(), false);
+        }
     }
-    @FXML private void handleNavDocuments() {
-        setActivePage("Documents","View scanned documents");
-    }
-    @FXML private void handleNavLogs() {
-        setActivePage("Logs","Audit trail of all actions");
-    }
-    @FXML private void handleNavSettings() {
-        setActivePage("Settings","System configuration");
-    }
+
+    @FXML private void handleNavBoxes()
+    { setActivePage("Boxes",     "View scanned boxes"); }
+    @FXML private void handleNavDocuments()
+    { setActivePage("Documents", "View scanned documents"); }
+    @FXML private void handleNavSettings()
+    { setActivePage("Settings",  "System configuration"); }
 
     private void setActivePage(String title, String subtitle) {
         pageTitle.setText(title);
@@ -436,7 +501,7 @@ public class AdminController {
         btn.getStyleClass().add("nav-item-active");
     }
 
-    // Feedback helper
+    // ── Feedback helper ───────────────────────────────────────────────────────
     private void showFeedback(String message, boolean success) {
         feedbackLabel.setText(message);
         feedbackLabel.setTextFill(
