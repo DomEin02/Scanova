@@ -21,6 +21,7 @@ import javafx.scene.control.ListCell;
 import javafx.scene.control.ListView;
 import javafx.scene.control.TextField;
 import javafx.scene.image.Image;
+import javafx.scene.input.KeyEvent;
 import javafx.embed.swing.SwingFXUtils;
 import javafx.stage.Stage;
 import javax.imageio.ImageIO;
@@ -45,6 +46,7 @@ public class ScanViewController {
     private final PageDAO pageDAO = new PageDAO();
     private volatile boolean scanning = false;
 
+    // Initialize
     @FXML
     public void initialize() {
         if (!SessionManager.getInstance().isLoggedIn()) {
@@ -52,17 +54,20 @@ public class ScanViewController {
             return;
         }
 
-        // Use getUsername() since Elena's SessionManager stores a User object
         statusLabel.setText("Ready · Logged in as: "
                 + SessionManager.getInstance().getCurrentUser().getUsername());
 
-        // Load hardcoded profiles — Sprint 3 loads from DB
+        // Hardcoded profiles — Sprint 3 loads from DB
         profileComboBox.getItems().addAll("Default", "WebLager_Standard");
 
         // Disable start scan until both profile and box are selected
         startScanButton.setDisable(true);
-        profileComboBox.valueProperty().addListener((obs, old, val) -> checkCanStartScan());
-        boxIdField.textProperty().addListener((obs, old, val) -> checkCanStartScan());
+        profileComboBox.valueProperty().addListener(
+                (obs, old, val) -> checkCanStartScan());
+        boxIdField.textProperty().addListener(
+                (obs, old, val) -> checkCanStartScan());
+
+        // Setup sidebar
         fileListView.setItems(sidebarItems);
         fileListView.setCellFactory(lv -> new ListCell<>() {
             @Override
@@ -81,24 +86,82 @@ public class ScanViewController {
             }
         });
 
+        // Click file in sidebar → show in ImageView
         fileListView.getSelectionModel()
                 .selectedItemProperty()
                 .addListener((obs, oldItem, newItem) -> {
                     if (newItem == null || newItem.isHeader()) return;
                     try {
                         BufferedImage buffered = ImageIO.read(
-                                new ByteArrayInputStream(newItem.getFile().getImageData()));
+                                new ByteArrayInputStream(
+                                        newItem.getFile().getImageData()));
                         if (buffered != null) {
-                            Image image = SwingFXUtils.toFXImage(buffered, null);
-                            imagePreviewComponentController.setImage(image, newItem.getFile());
+                            imagePreviewComponentController.setImage(
+                                    SwingFXUtils.toFXImage(buffered, null),
+                                    newItem.getFile());
                         }
                     } catch (Exception e) {
-                        statusLabel.setText("Could not load image — " + e.getMessage());
+                        statusLabel.setText("Could not load image — "
+                                + e.getMessage());
                     }
                 });
+
+        // ── Register keyboard shortcuts reliably via sceneProperty ────────────
+        // sceneProperty fires exactly when the node is attached to a scene
+        // — more reliable than Platform.runLater()
+        fileListView.sceneProperty().addListener((obs, oldScene, newScene) -> {
+            if (newScene != null) {
+                newScene.addEventFilter(
+                        KeyEvent.KEY_PRESSED, this::handleKeyPress);
+            }
+        });
     }
 
-    //Check if scan can start
+    // Keyboard shortcuts
+    private void handleKeyPress(KeyEvent event) {
+        switch (event.getCode()) {
+            case F1 -> {
+                // Only start if profile and box are selected
+                if (!startScanButton.isDisabled()) onStartScan();
+                event.consume();
+            }
+            case F2 -> {
+                onStopScan();
+                event.consume();
+            }
+            case F3 -> {
+                onOpenSlideshow();
+                event.consume();
+            }
+            case F4 -> {
+                statusLabel.setText("Status: Export — coming soon");
+                event.consume();
+            }
+            case DELETE -> {
+                onDeleteFile();
+                event.consume();
+            }
+            case UP -> {
+                int i = fileListView.getSelectionModel().getSelectedIndex();
+                if (i > 0) {
+                    fileListView.getSelectionModel().select(i - 1);
+                    fileListView.scrollTo(i - 1);
+                }
+                event.consume();
+            }
+            case DOWN -> {
+                int i = fileListView.getSelectionModel().getSelectedIndex();
+                if (i < sidebarItems.size() - 1) {
+                    fileListView.getSelectionModel().select(i + 1);
+                    fileListView.scrollTo(i + 1);
+                }
+                event.consume();
+            }
+            default -> {}
+        }
+    }
+
+    // Check if scan can start
     private void checkCanStartScan() {
         boolean hasProfile = profileComboBox.getValue() != null;
         boolean hasBox = boxIdField.getText() != null
@@ -106,13 +169,46 @@ public class ScanViewController {
         startScanButton.setDisable(!(hasProfile && hasBox));
     }
 
-    //Check if document header already exists in sidebar
+    // Check if document header already exists
     private boolean headerExists(int documentId) {
         return sidebarItems.stream()
                 .anyMatch(i -> i.isHeader() && i.getDocumentId() == documentId);
     }
 
-    //Start Scan
+    // Move Up
+    @FXML
+    private void onMoveUp() {
+        int index = fileListView.getSelectionModel().getSelectedIndex();
+        if (index <= 0) return;
+        SidebarItem item = sidebarItems.remove(index);
+        sidebarItems.add(index - 1, item);
+        fileListView.getSelectionModel().select(index - 1);
+    }
+
+    // Move Down
+    @FXML
+    private void onMoveDown() {
+        int index = fileListView.getSelectionModel().getSelectedIndex();
+        if (index < 0 || index >= sidebarItems.size() - 1) return;
+        SidebarItem item = sidebarItems.remove(index);
+        sidebarItems.add(index + 1, item);
+        fileListView.getSelectionModel().select(index + 1);
+    }
+
+    // Delete File
+    @FXML
+    private void onDeleteFile() {
+        SidebarItem selected =
+                fileListView.getSelectionModel().getSelectedItem();
+        if (selected == null || selected.isHeader()) {
+            statusLabel.setText("Status: Select a file to delete");
+            return;
+        }
+        sidebarItems.remove(selected);
+        statusLabel.setText("Status: File removed");
+    }
+
+    // Start Scan
     @FXML
     private void onStartScan() {
         scanning = true;
@@ -125,7 +221,6 @@ public class ScanViewController {
 
                 scanManager.setCurrentBoxId(boxIdField.getText());
 
-                // Clear old pages before new scan — full chain built in Sprint 3
                 try {
                     pageDAO.clearPages();
                 } catch (Exception e) {
@@ -135,7 +230,8 @@ public class ScanViewController {
                 scanManager.initSession();
 
                 Platform.runLater(() -> {
-                    scanCountLabel.setText("Scans: 0 / " + scanManager.getTotalAvailable());
+                    scanCountLabel.setText(
+                            "Scans: 0 / " + scanManager.getTotalAvailable());
                     statusLabel.setText("Status: Waiting for first barcode...");
                 });
 
@@ -149,13 +245,15 @@ public class ScanViewController {
                             try {
                                 pageDAO.insertPage(file);
                             } catch (Exception e) {
-                                System.out.println("DB save failed: " + e.getMessage());
+                                System.out.println("DB save failed: "
+                                        + e.getMessage());
                             }
                         }).start();
 
                         Platform.runLater(() -> {
                             if (!headerExists(file.getDocumentId())) {
-                                sidebarItems.add(new SidebarItem(file.getDocumentId()));
+                                sidebarItems.add(
+                                        new SidebarItem(file.getDocumentId()));
                             }
                             sidebarItems.add(new SidebarItem(file));
 
@@ -163,13 +261,18 @@ public class ScanViewController {
 
                             try {
                                 BufferedImage buffered = ImageIO.read(
-                                        new ByteArrayInputStream(file.getImageData()));
+                                        new ByteArrayInputStream(
+                                                file.getImageData()));
                                 if (buffered != null) {
-                                    Image image = SwingFXUtils.toFXImage(buffered, null);
-                                    imagePreviewComponentController.setImage(image, file);
+                                    Image image = SwingFXUtils.toFXImage(
+                                            buffered, null);
+                                    imagePreviewComponentController.setImage(
+                                            image, file);
                                 }
                             } catch (Exception e) {
-                                statusLabel.setText("Could not display image — " + e.getMessage());
+                                statusLabel.setText(
+                                        "Could not display image — "
+                                                + e.getMessage());
                             }
 
                             int totalScans = scanManager.getAllDocuments()
@@ -186,39 +289,46 @@ public class ScanViewController {
 
                 Platform.runLater(() ->
                         statusLabel.setText("Status: Done — "
-                                + scanManager.getTotalFilesFetched() + " files scanned"));
+                                + scanManager.getTotalFilesFetched()
+                                + " files scanned"));
                 return null;
             }
         };
 
         scanTask.setOnFailed(e -> Platform.runLater(() ->
-                statusLabel.setText("Status: Error — " + scanTask.getException().getMessage())));
+                statusLabel.setText("Status: Error — "
+                        + scanTask.getException().getMessage())));
 
         Thread thread = new Thread(scanTask);
         thread.setDaemon(true);
         thread.start();
     }
 
-    //Stop Scan
+    // Stop Scan
     @FXML
     private void onStopScan() {
         scanning = false;
         statusLabel.setText("Status: Stopped");
     }
-    //Open Slideshow Review Mode
+
+    // Open Slideshow
     @FXML
     private void onOpenSlideshow() {
         List<ScannedFile> allFiles = sidebarItems.stream()
                 .filter(item -> !item.isHeader())
                 .map(SidebarItem::getFile)
                 .collect(Collectors.toList());
+
         if (allFiles.isEmpty()) {
-            statusLabel.setText("Status: No files to review. Start a scan first.");
+            statusLabel.setText(
+                    "Status: No files to review. Start a scan first.");
             return;
         }
+
         try {
             FXMLLoader loader = new FXMLLoader(
-                    getClass().getResource("/dk/easv/scanova/slideshowView.fxml"));
+                    getClass().getResource(
+                            "/dk/easv/scanova/slideshowView.fxml"));
             Parent root = loader.load();
             SlideshowController controller = loader.getController();
             Stage stage = new Stage();
@@ -226,14 +336,15 @@ public class ScanViewController {
             stage.setScene(new Scene(root));
             stage.show();
             stage.requestFocus();
-            // Pass files AFTER show() so scene is available for keyboard shortcuts
             controller.setFiles(allFiles);
         } catch (Exception e) {
-            statusLabel.setText("Could not open review mode: " + e.getMessage());
+            statusLabel.setText("Could not open review mode: "
+                    + e.getMessage());
             e.printStackTrace();
         }
     }
-    //Logout
+
+    // Logout
     @FXML
     private void handleLogout() {
         SessionManager.getInstance().logout();

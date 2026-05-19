@@ -55,18 +55,20 @@
 
             <Separator style="-fx-background-color: rgba(255,255,255,0.05);"/>
 
-            <!-- User card -->
+            <!-- User card — includes role and login time (teammate addition) -->
             <HBox spacing="10" alignment="CENTER_LEFT">
                 <padding><Insets top="12" right="12" bottom="12" left="12"/></padding>
                 <Label text="AD" style="-fx-background-color: rgba(46,204,154,0.2);
-                                    -fx-text-fill: #2ECC9A; -fx-font-size: 11px;
-                                    -fx-font-weight: bold; -fx-background-radius: 15;
-                                    -fx-padding: 8 10 8 10;"/>
-                <VBox spacing="1">
+                                        -fx-text-fill: #2ECC9A; -fx-font-size: 11px;
+                                        -fx-font-weight: bold; -fx-background-radius: 15;
+                                        -fx-padding: 8 10 8 10;"/>
+                <VBox spacing="2">
                     <Label fx:id="loggedInLabel" text="admin"
                            style="-fx-text-fill: #8AABD4; -fx-font-size: 12px;
-                             -fx-font-weight: bold;"/>
-                    <Label text="Administrator"
+                                  -fx-font-weight: bold;"/>
+                    <Label fx:id="loggedInRole" text="Administrator"
+                           style="-fx-text-fill: #3A5580; -fx-font-size: 10px;"/>
+                    <Label fx:id="loggedInTime" text="Since: —"
                            style="-fx-text-fill: #3A5580; -fx-font-size: 10px;"/>
                 </VBox>
             </HBox>
@@ -102,19 +104,20 @@
                 </HBox>
             </top>
 
-            <!-- Scrollable content -->
+            <!-- Scrollable content — fx:id="contentArea" from teammate -->
             <center>
-                <ScrollPane fitToWidth="true"
+                <ScrollPane fx:id="contentArea"
+                            fitToWidth="true"
                             style="-fx-background-color: transparent;
-                               -fx-background: transparent;
-                               -fx-border-color: transparent;">
+                                   -fx-background: transparent;
+                                   -fx-border-color: transparent;">
                     <VBox styleClass="content-area" spacing="16">
 
                         <!-- Page header -->
                         <VBox spacing="3">
                             <Label fx:id="contentTitle" text="User management"
                                    style="-fx-font-size: 20px; -fx-font-weight: bold;
-                                   -fx-text-fill: #1B2A4A;"/>
+                                          -fx-text-fill: #1B2A4A;"/>
                             <Label fx:id="contentSubtitle"
                                    text="Manage all user accounts and access"
                                    style="-fx-font-size: 13px; -fx-text-fill: #718096;"/>
@@ -136,7 +139,7 @@
                             </VBox>
                         </HBox>
 
-                        <!-- Table + Form + Profile Assignment -->
+                        <!-- ═══════ USERS SECTION ═══════ -->
                         <HBox fx:id="usersSection" spacing="16" VBox.vgrow="ALWAYS">
 
                             <!-- LEFT — Users table panel -->
@@ -145,14 +148,14 @@
                                 <!-- Panel header -->
                                 <HBox alignment="CENTER_LEFT" spacing="10"
                                       style="-fx-padding: 14 16 14 16;
-                                     -fx-border-color: transparent transparent #E2E8F0 transparent;
-                                     -fx-border-width: 0 0 0.5 0;">
+                                             -fx-border-color: transparent transparent #E2E8F0 transparent;
+                                             -fx-border-width: 0 0 0.5 0;">
                                     <Label text="All accounts" styleClass="panel-title"/>
                                     <Label fx:id="userCountBadge" text="0"
                                            style="-fx-background-color: #F0F2F5;
-                                         -fx-text-fill: #718096;
-                                         -fx-background-radius: 20;
-                                         -fx-padding: 1 8; -fx-font-size: 11px;"/>
+                                                  -fx-text-fill: #718096;
+                                                  -fx-background-radius: 20;
+                                                  -fx-padding: 1 8; -fx-font-size: 11px;"/>
                                     <Region HBox.hgrow="ALWAYS"/>
                                     <Button text="+ New user"
                                             styleClass="btn-primary"
@@ -160,17 +163,38 @@
                                             style="-fx-padding: 6 14; -fx-font-size: 12px;"/>
                                 </HBox>
 
+                                <!-- Search and filter row — from teammate -->
+                                <HBox spacing="8" alignment="CENTER_LEFT"
+                                      style="-fx-padding: 10 16 10 16;
+                                             -fx-border-color: transparent transparent #E2E8F0 transparent;
+                                             -fx-border-width: 0 0 0.5 0;">
+                                    <TextField fx:id="searchField"
+                                               promptText="🔍  Search by username..."
+                                               prefWidth="220"
+                                               style="-fx-font-size: 12px; -fx-padding: 6 10;
+                                                      -fx-border-color: #CBD5E0;
+                                                      -fx-border-radius: 5;
+                                                      -fx-background-radius: 5;"/>
+                                    <ComboBox fx:id="roleFilterComboBox"
+                                              prefWidth="140"
+                                              promptText="Filter by role"/>
+                                    <Button text="Clear"
+                                            styleClass="btn-secondary"
+                                            onAction="#handleClearSearch"
+                                            style="-fx-padding: 6 12; -fx-font-size: 12px;"/>
+                                </HBox>
+
                                 <!-- Table -->
                                 <TableView fx:id="userTable"
                                            VBox.vgrow="ALWAYS"
-                                           prefHeight="280"
+                                           prefHeight="260"
                                            style="-fx-border-color: transparent;
-                                          -fx-background-color: transparent;">
+                                                  -fx-background-color: transparent;">
                                     <columns>
-                                        <TableColumn fx:id="colId"       text="ID"               prefWidth="50"/>
-                                        <TableColumn fx:id="colUsername" text="Username"          prefWidth="140"/>
+                                        <TableColumn fx:id="colUsername" text="Username"          prefWidth="150"/>
                                         <TableColumn fx:id="colRole"     text="Role"              prefWidth="90"/>
-                                        <TableColumn fx:id="colProfiles" text="Assigned Profiles" prefWidth="220"/>
+                                        <TableColumn fx:id="colProfiles" text="Assigned Profiles" prefWidth="200"/>
+                                        <TableColumn fx:id="colStatus"   text="Status"            prefWidth="80"/>
                                     </columns>
                                     <placeholder>
                                         <Label text="No users found."
@@ -178,31 +202,35 @@
                                     </placeholder>
                                 </TableView>
 
-                                <!-- Action buttons -->
+                                <!-- Action buttons — includes Reactivate from teammate -->
                                 <HBox spacing="8"
                                       style="-fx-padding: 12 16;
-                                     -fx-border-color: #E2E8F0 transparent transparent transparent;
-                                     -fx-border-width: 0.5 0 0 0;">
+                                             -fx-border-color: #E2E8F0 transparent transparent transparent;
+                                             -fx-border-width: 0.5 0 0 0;">
                                     <Button fx:id="editButton"
                                             text="Edit selected"
                                             styleClass="btn-secondary"
                                             onAction="#handleEditUser"
                                             style="-fx-padding: 7 16; -fx-font-size: 12px;"/>
                                     <Button fx:id="deleteButton"
-                                            text="Delete selected"
+                                            text="Deactivate selected"
                                             styleClass="btn-danger"
                                             onAction="#handleDeleteUser"
                                             style="-fx-padding: 7 16; -fx-font-size: 12px;"/>
+                                    <Button text="Reactivate selected"
+                                            styleClass="btn-secondary"
+                                            onAction="#handleReactivateUser"
+                                            style="-fx-padding: 7 16; -fx-font-size: 12px;"/>
                                 </HBox>
 
-                                <!-- Profile Assignment Section -->
+                                <!-- Profile Assignment -->
                                 <VBox spacing="8"
                                       style="-fx-padding: 12 16;
-                                     -fx-border-color: #E2E8F0 transparent transparent transparent;
-                                     -fx-border-width: 0.5 0 0 0;">
+                                             -fx-border-color: #E2E8F0 transparent transparent transparent;
+                                             -fx-border-width: 0.5 0 0 0;">
                                     <Label text="Assign Profile to Selected User"
                                            style="-fx-font-size: 13px; -fx-font-weight: bold;
-                                         -fx-text-fill: #1B2A4A;"/>
+                                                  -fx-text-fill: #1B2A4A;"/>
                                     <HBox spacing="8">
                                         <ComboBox fx:id="profileComboBox"
                                                   prefWidth="220"
@@ -210,11 +238,11 @@
                                         <Button mnemonicParsing="false"
                                                 onAction="#handleAssignProfile"
                                                 style="-fx-background-color: #2ECC9A;
-                                             -fx-text-fill: white;
-                                             -fx-font-weight: bold;
-                                             -fx-padding: 7 16;
-                                             -fx-background-radius: 4;
-                                             -fx-cursor: hand;"
+                                                       -fx-text-fill: white;
+                                                       -fx-font-weight: bold;
+                                                       -fx-padding: 7 16;
+                                                       -fx-background-radius: 4;
+                                                       -fx-cursor: hand;"
                                                 text="Assign"/>
                                     </HBox>
                                     <Label fx:id="assignedProfilesLabel"
@@ -226,25 +254,23 @@
                             <!-- RIGHT — User Form panel -->
                             <VBox styleClass="panel" prefWidth="290">
 
-                                <!-- Form header -->
                                 <VBox spacing="2"
                                       style="-fx-padding: 16 16 14 16;
-                                     -fx-border-color: transparent transparent #E2E8F0 transparent;
-                                     -fx-border-width: 0 0 0.5 0;">
+                                             -fx-border-color: transparent transparent #E2E8F0 transparent;
+                                             -fx-border-width: 0 0 0.5 0;">
                                     <Label fx:id="formTitle" text="Create new user"
                                            styleClass="panel-title"/>
                                     <Label text="Fill in the details below"
                                            style="-fx-text-fill: #A0AEC0; -fx-font-size: 11px;"/>
                                 </VBox>
 
-                                <!-- Fields -->
                                 <VBox spacing="14">
                                     <padding><Insets top="16" right="16" bottom="16" left="16"/></padding>
 
                                     <VBox spacing="5">
                                         <Label text="Username"
                                                style="-fx-text-fill: #4A5568; -fx-font-size: 12px;
-                                            -fx-font-weight: bold;"/>
+                                                      -fx-font-weight: bold;"/>
                                         <TextField fx:id="usernameField"
                                                    promptText="e.g. JN"
                                                    styleClass="text-field"/>
@@ -253,7 +279,7 @@
                                     <VBox spacing="5">
                                         <Label text="Password"
                                                style="-fx-text-fill: #4A5568; -fx-font-size: 12px;
-                                            -fx-font-weight: bold;"/>
+                                                      -fx-font-weight: bold;"/>
                                         <PasswordField fx:id="passwordField"
                                                        promptText="Min. 6 characters"
                                                        styleClass="password-field"/>
@@ -264,7 +290,7 @@
                                     <VBox spacing="5">
                                         <Label text="Role"
                                                style="-fx-text-fill: #4A5568; -fx-font-size: 12px;
-                                            -fx-font-weight: bold;"/>
+                                                      -fx-font-weight: bold;"/>
                                         <ComboBox fx:id="roleComboBox"
                                                   maxWidth="Infinity"
                                                   styleClass="combo-box"/>
@@ -292,172 +318,157 @@
 
                         </HBox>
 
-                    <!-- ═══════ PROFILES SECTION ═══════ -->
-                    <HBox fx:id="profilesSection"
-                          spacing="16"
-                          VBox.vgrow="ALWAYS"
-                          visible="false"
-                          managed="false">
+                        <!-- ═══════ PROFILES SECTION ═══════ -->
+                        <HBox fx:id="profilesSection"
+                              spacing="16"
+                              VBox.vgrow="ALWAYS"
+                              visible="false"
+                              managed="false">
 
-                        <!-- LEFT — Profiles table -->
-                        <VBox styleClass="panel" HBox.hgrow="ALWAYS">
+                            <!-- LEFT — Profiles table -->
+                            <VBox styleClass="panel" HBox.hgrow="ALWAYS">
 
-                            <HBox alignment="CENTER_LEFT" spacing="10"
-                                  style="-fx-padding: 14 16 14 16;
+                                <HBox alignment="CENTER_LEFT" spacing="10"
+                                      style="-fx-padding: 14 16 14 16;
                                              -fx-border-color: transparent transparent #E2E8F0 transparent;
                                              -fx-border-width: 0 0 0.5 0;">
-                                <Label text="All profiles" styleClass="panel-title"/>
-                                <Label fx:id="profileCountBadge" text="0"
-                                       style="-fx-background-color: #F0F2F5;
+                                    <Label text="All profiles" styleClass="panel-title"/>
+                                    <Label fx:id="profileCountBadge" text="0"
+                                           style="-fx-background-color: #F0F2F5;
                                                   -fx-text-fill: #718096;
                                                   -fx-background-radius: 20;
                                                   -fx-padding: 1 8; -fx-font-size: 11px;"/>
-                                <Region HBox.hgrow="ALWAYS"/>
-                                <Button text="+ New profile"
-                                        styleClass="btn-primary"
-                                        onAction="#handleClearProfileForm"
-                                        style="-fx-padding: 6 14; -fx-font-size: 12px;"/>
-                            </HBox>
+                                    <Region HBox.hgrow="ALWAYS"/>
+                                    <Button text="+ New profile"
+                                            styleClass="btn-primary"
+                                            onAction="#handleClearProfileForm"
+                                            style="-fx-padding: 6 14; -fx-font-size: 12px;"/>
+                                </HBox>
 
-                            <TableView fx:id="profileTable"
-                                       VBox.vgrow="ALWAYS"
-                                       prefHeight="300"
-                                       style="-fx-border-color: transparent;
+                                <TableView fx:id="profileTable"
+                                           VBox.vgrow="ALWAYS"
+                                           prefHeight="300"
+                                           style="-fx-border-color: transparent;
                                                   -fx-background-color: transparent;">
-                                <columns>
-                                    <TableColumn fx:id="colProfileId"
-                                                 text="ID" prefWidth="50"/>
-                                    <TableColumn fx:id="colProfileName"
-                                                 text="Name" prefWidth="150"/>
-                                    <TableColumn fx:id="colProfileRotation"
-                                                 text="Rotation" prefWidth="80"/>
-                                    <TableColumn fx:id="colProfileBrightness"
-                                                 text="Brightness" prefWidth="90"/>
-                                    <TableColumn fx:id="colProfileClientId"
-                                                 text="Client" prefWidth="80"/>
-                                </columns>
-                                <placeholder>
-                                    <Label text="No profiles found."
-                                           style="-fx-text-fill: #A0AEC0;
-                                                      -fx-font-size: 13px;"/>
-                                </placeholder>
-                            </TableView>
+                                    <columns>
+                                        <TableColumn fx:id="colProfileId"         text="ID"         prefWidth="50"/>
+                                        <TableColumn fx:id="colProfileName"       text="Name"       prefWidth="150"/>
+                                        <TableColumn fx:id="colProfileRotation"   text="Rotation"   prefWidth="80"/>
+                                        <TableColumn fx:id="colProfileBrightness" text="Brightness" prefWidth="90"/>
+                                        <TableColumn fx:id="colProfileClientId"   text="Client"     prefWidth="80"/>
+                                    </columns>
+                                    <placeholder>
+                                        <Label text="No profiles found."
+                                               style="-fx-text-fill: #A0AEC0; -fx-font-size: 13px;"/>
+                                    </placeholder>
+                                </TableView>
 
-                            <HBox spacing="8"
-                                  style="-fx-padding: 12 16;
+                                <HBox spacing="8"
+                                      style="-fx-padding: 12 16;
                                              -fx-border-color: #E2E8F0 transparent transparent transparent;
                                              -fx-border-width: 0.5 0 0 0;">
-                                <Button fx:id="profileEditButton"
-                                        text="Edit selected"
-                                        styleClass="btn-secondary"
-                                        onAction="#handleEditProfile"
-                                        style="-fx-padding: 7 16; -fx-font-size: 12px;"/>
-                                <Button fx:id="profileDeleteButton"
-                                        text="Delete selected"
-                                        styleClass="btn-danger"
-                                        onAction="#handleDeleteProfile"
-                                        style="-fx-padding: 7 16; -fx-font-size: 12px;"/>
-                            </HBox>
+                                    <Button fx:id="profileEditButton"
+                                            text="Edit selected"
+                                            styleClass="btn-secondary"
+                                            onAction="#handleEditProfile"
+                                            style="-fx-padding: 7 16; -fx-font-size: 12px;"/>
+                                    <Button fx:id="profileDeleteButton"
+                                            text="Delete selected"
+                                            styleClass="btn-danger"
+                                            onAction="#handleDeleteProfile"
+                                            style="-fx-padding: 7 16; -fx-font-size: 12px;"/>
+                                </HBox>
 
-                        </VBox>
+                            </VBox>
 
-                        <!-- RIGHT — Profile form -->
-                        <VBox styleClass="panel" prefWidth="290">
+                            <!-- RIGHT — Profile form -->
+                            <VBox styleClass="panel" prefWidth="290">
 
-                            <VBox spacing="2"
-                                  style="-fx-padding: 16 16 14 16;
+                                <VBox spacing="2"
+                                      style="-fx-padding: 16 16 14 16;
                                              -fx-border-color: transparent transparent #E2E8F0 transparent;
                                              -fx-border-width: 0 0 0.5 0;">
-                                <Label fx:id="profileFormTitle"
-                                       text="Create new profile"
-                                       styleClass="panel-title"/>
-                                <Label text="Fill in the details below"
-                                       style="-fx-text-fill: #A0AEC0; -fx-font-size: 11px;"/>
-                            </VBox>
-
-                            <VBox spacing="14">
-                                <padding><Insets top="16" right="16" bottom="16" left="16"/></padding>
-
-                                <!-- Name -->
-                                <VBox spacing="5">
-                                    <Label text="Profile name" styleClass="field-label"/>
-                                    <TextField fx:id="profileNameField"
-                                               promptText="e.g. Default"
-                                               styleClass="text-field"/>
+                                    <Label fx:id="profileFormTitle"
+                                           text="Create new profile"
+                                           styleClass="panel-title"/>
+                                    <Label text="Fill in the details below"
+                                           style="-fx-text-fill: #A0AEC0; -fx-font-size: 11px;"/>
                                 </VBox>
 
-                                <!-- Rotation -->
-                                <VBox spacing="5">
-                                    <HBox alignment="CENTER_LEFT" spacing="8">
-                                        <Label text="Rotation" styleClass="field-label"/>
-                                        <Label fx:id="profileRotationValueLabel"
-                                               text="0°"
-                                               style="-fx-text-fill: #2ECC9A;
+                                <VBox spacing="14">
+                                    <padding><Insets top="16" right="16" bottom="16" left="16"/></padding>
+
+                                    <VBox spacing="5">
+                                        <Label text="Profile name" styleClass="field-label"/>
+                                        <TextField fx:id="profileNameField"
+                                                   promptText="e.g. Default"
+                                                   styleClass="text-field"/>
+                                    </VBox>
+
+                                    <VBox spacing="5">
+                                        <HBox alignment="CENTER_LEFT" spacing="8">
+                                            <Label text="Rotation" styleClass="field-label"/>
+                                            <Label fx:id="profileRotationValueLabel"
+                                                   text="0°"
+                                                   style="-fx-text-fill: #2ECC9A;
                                                           -fx-font-size: 12px;
                                                           -fx-font-weight: bold;"/>
-                                    </HBox>
-                                    <Slider fx:id="profileRotationSlider"
-                                            min="-180" max="180" value="0"
-                                            showTickMarks="true"
-                                            showTickLabels="true"
-                                            majorTickUnit="90"/>
-                                </VBox>
+                                        </HBox>
+                                        <Slider fx:id="profileRotationSlider"
+                                                min="-180" max="180" value="0"
+                                                showTickMarks="true"
+                                                showTickLabels="true"
+                                                majorTickUnit="90"/>
+                                    </VBox>
 
-                                <!-- Brightness -->
-                                <VBox spacing="5">
-                                    <HBox alignment="CENTER_LEFT" spacing="8">
-                                        <Label text="Brightness" styleClass="field-label"/>
-                                        <Label fx:id="profileBrightnessValueLabel"
-                                               text="1.0"
-                                               style="-fx-text-fill: #2ECC9A;
+                                    <VBox spacing="5">
+                                        <HBox alignment="CENTER_LEFT" spacing="8">
+                                            <Label text="Brightness" styleClass="field-label"/>
+                                            <Label fx:id="profileBrightnessValueLabel"
+                                                   text="1.0"
+                                                   style="-fx-text-fill: #2ECC9A;
                                                           -fx-font-size: 12px;
                                                           -fx-font-weight: bold;"/>
-                                    </HBox>
-                                    <Slider fx:id="profileBrightnessSlider"
-                                            min="0.1" max="3.0" value="1.0"
-                                            showTickMarks="true"
-                                            showTickLabels="true"
-                                            majorTickUnit="1"/>
+                                        </HBox>
+                                        <Slider fx:id="profileBrightnessSlider"
+                                                min="0.1" max="3.0" value="1.0"
+                                                showTickMarks="true"
+                                                showTickLabels="true"
+                                                majorTickUnit="1"/>
+                                    </VBox>
+
+                                    <VBox spacing="5">
+                                        <Label text="Client" styleClass="field-label"/>
+                                        <ComboBox fx:id="profileClientComboBox"
+                                                  promptText="Select a client"
+                                                  maxWidth="Infinity"
+                                                  styleClass="combo-box"/>
+                                    </VBox>
+
+                                    <Label fx:id="profileFeedbackLabel"
+                                           text=""
+                                           wrapText="true"
+                                           style="-fx-font-size: 12px; -fx-min-height: 18;"/>
+
+                                    <Button fx:id="profileSaveButton"
+                                            text="Create profile"
+                                            styleClass="btn-primary"
+                                            onAction="#handleSaveProfile"
+                                            maxWidth="Infinity"
+                                            style="-fx-padding: 10; -fx-font-size: 13px;"/>
+
+                                    <Button text="Clear form"
+                                            styleClass="btn-secondary"
+                                            onAction="#handleClearProfileForm"
+                                            maxWidth="Infinity"
+                                            style="-fx-padding: 10; -fx-font-size: 13px;"/>
                                 </VBox>
-
-                                <!-- Client -->
-                                <VBox spacing="5">
-                                    <Label text="Client" styleClass="field-label"/>
-                                    <ComboBox fx:id="profileClientComboBox"
-                                              promptText="Select a client"
-                                              maxWidth="Infinity"
-                                              styleClass="combo-box"/>
-                                </VBox>
-
-                                <!-- Feedback -->
-                                <Label fx:id="profileFeedbackLabel"
-                                       text=""
-                                       wrapText="true"
-                                       style="-fx-font-size: 12px; -fx-min-height: 18;"/>
-
-                                <!-- Save -->
-                                <Button fx:id="profileSaveButton"
-                                        text="Create profile"
-                                        styleClass="btn-primary"
-                                        onAction="#handleSaveProfile"
-                                        maxWidth="Infinity"
-                                        style="-fx-padding: 10; -fx-font-size: 13px;"/>
-
-                                <!-- Clear -->
-                                <Button text="Clear form"
-                                        styleClass="btn-secondary"
-                                        onAction="#handleClearProfileForm"
-                                        maxWidth="Infinity"
-                                        style="-fx-padding: 10; -fx-font-size: 13px;"/>
-
                             </VBox>
-                        </VBox>
 
-                    </HBox>
+                        </HBox>
 
-                </VBox>
-            </ScrollPane>
-
+                    </VBox>
+                </ScrollPane>
             </center>
 
         </BorderPane>

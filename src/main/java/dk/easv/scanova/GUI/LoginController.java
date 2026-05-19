@@ -1,5 +1,6 @@
 package dk.easv.scanova.GUI;
 
+import dk.easv.scanova.BLL.LogManager;
 import dk.easv.scanova.BLL.SessionManager;
 import dk.easv.scanova.BLL.UserManager;
 import dk.easv.scanova.Model.User;
@@ -9,16 +10,18 @@ import javafx.scene.control.*;
 
 public class LoginController {
 
-    @FXML private TextField usernameField;
+    @FXML private TextField    usernameField;
     @FXML private PasswordField passwordField;
-    @FXML private Label errorLabel;
+    @FXML private Label         errorLabel;
 
     private UserManager userManager;
+    private LogManager  logManager;
 
     @FXML
     public void initialize() {
         try {
             userManager = new UserManager();
+            logManager  = new LogManager();
         } catch (Exception e) {
             errorLabel.setText("Could not connect to database.");
         }
@@ -35,17 +38,20 @@ public class LoginController {
             return;
         }
 
-        // Real DB login
         try {
             User user = userManager.login(username, password);
 
             if (user == null) {
                 errorLabel.setText("Incorrect username or password.");
                 passwordField.clear();
+                try { logManager.log("LOGIN_FAILED", -1,
+                        "Failed login: " + username); } catch (Exception ignored) {}
                 return;
             }
 
             SessionManager.getInstance().setCurrentUser(user);
+            try { logManager.log("LOGIN_SUCCESS", user.getId(),
+                    "Login: " + user.getUsername()); } catch (Exception ignored) {}
 
             if (user.isAdmin()) {
                 SceneManager.load("adminView.fxml");
