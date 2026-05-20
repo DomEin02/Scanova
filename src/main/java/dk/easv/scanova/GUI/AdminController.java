@@ -1,17 +1,14 @@
 package dk.easv.scanova.GUI;
 
 import dk.easv.scanova.BLL.LogManager;
-import dk.easv.scanova.BLL.ProfileManager;
 import dk.easv.scanova.BLL.SessionManager;
 import dk.easv.scanova.BLL.UserManager;
 import dk.easv.scanova.DAL.ProfileDAO;
-import dk.easv.scanova.Model.Profile;
 import dk.easv.scanova.Model.User;
 import dk.easv.scanova.SceneManager;
 import javafx.application.Platform;
 import javafx.beans.property.SimpleIntegerProperty;
 import javafx.beans.property.SimpleStringProperty;
-import javafx.beans.property.SimpleFloatProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
@@ -81,45 +78,17 @@ public class AdminController {
     @FXML private ComboBox<String> profileComboBox;
     @FXML private Label            assignedProfilesLabel;
 
-    // ── Show/Hide sections ────────────────────────────────────────────────────
-    @FXML private HBox usersSection;
-    @FXML private HBox profilesSection;
-
-    // ── Dynamic content area (teammate's architecture) ────────────────────────
+    // ── Dynamic content area ──────────────────────────────────────────────────
     @FXML private ScrollPane contentArea;
 
-    // ── Profile table ─────────────────────────────────────────────────────────
-    @FXML private TableView<Profile>            profileTable;
-    @FXML private TableColumn<Profile, Integer> colProfileId;
-    @FXML private TableColumn<Profile, String>  colProfileName;
-    @FXML private TableColumn<Profile, Float>   colProfileRotation;
-    @FXML private TableColumn<Profile, Float>   colProfileBrightness;
-    @FXML private TableColumn<Profile, Integer> colProfileClientId;
-    @FXML private Label                         profileCountBadge;
-    @FXML private Button                        profileEditButton;
-    @FXML private Button                        profileDeleteButton;
-
-    // ── Profile form ──────────────────────────────────────────────────────────
-    @FXML private Label            profileFormTitle;
-    @FXML private TextField        profileNameField;
-    @FXML private Slider           profileRotationSlider;
-    @FXML private Label            profileRotationValueLabel;
-    @FXML private Slider           profileBrightnessSlider;
-    @FXML private Label            profileBrightnessValueLabel;
-    @FXML private ComboBox<String> profileClientComboBox;
-    @FXML private Label            profileFeedbackLabel;
-    @FXML private Button           profileSaveButton;
-
     // ── Internal state ────────────────────────────────────────────────────────
-    private UserManager    userManager;
-    private ProfileManager profileManager;
-    private final ProfileDAO profileDAO  = new ProfileDAO();
-    private final LogManager logManager  = new LogManager();
-    private Profile profileBeingEdited   = null;
-    private User    userBeingEdited      = null;
-    private boolean isDarkMode           = false;
-    private ObservableList<User> allUsers = FXCollections.observableArrayList();
-    private Node defaultContent;
+    private UserManager              userManager;
+    private final ProfileDAO         profileDAO  = new ProfileDAO();
+    private final LogManager         logManager  = new LogManager();
+    private User                     userBeingEdited = null;
+    private boolean                  isDarkMode      = false;
+    private ObservableList<User>     allUsers        = FXCollections.observableArrayList();
+    private Node                     defaultContent;
 
     // ─────────────────────────────────────────────────────────────────────────
     @FXML
@@ -129,11 +98,6 @@ public class AdminController {
         } catch (Exception e) {
             showFeedback("Cannot connect to database: " + e.getMessage(), false);
             return;
-        }
-        try {
-            profileManager = new ProfileManager();
-        } catch (Exception e) {
-            showFeedback("Cannot connect: " + e.getMessage(), false);
         }
 
         // Show logged-in user info
@@ -166,7 +130,7 @@ public class AdminController {
         colRole.setCellValueFactory(d ->
                 new SimpleStringProperty(d.getValue().getRole()));
 
-        // Profiles column
+        // Profiles column — shows assigned profiles per user
         if (colProfiles != null) {
             colProfiles.setCellValueFactory(data -> {
                 try {
@@ -180,7 +144,7 @@ public class AdminController {
             });
         }
 
-        // Status column
+        // Status column — shows Active/Inactive
         if (colStatus != null) {
             colStatus.setCellValueFactory(d ->
                     new SimpleStringProperty(
@@ -202,95 +166,6 @@ public class AdminController {
             });
         }
 
-        // Wire profile table columns
-        if (profileTable != null) {
-            colProfileId.setCellValueFactory(d ->
-                    new SimpleIntegerProperty(d.getValue().getId()).asObject());
-            colProfileName.setCellValueFactory(d ->
-                    new SimpleStringProperty(d.getValue().getName()));
-            colProfileRotation.setCellValueFactory(d ->
-                    new SimpleFloatProperty(d.getValue().getRotation()).asObject());
-            colProfileBrightness.setCellValueFactory(d ->
-                    new SimpleFloatProperty(d.getValue().getBrightness()).asObject());
-            colProfileClientId.setCellValueFactory(d ->
-                    new SimpleIntegerProperty(d.getValue().getClientId()).asObject());
-
-            // Inline Edit + Delete buttons per row
-            TableColumn<Profile, Void> actionsCol = new TableColumn<>("Actions");
-            actionsCol.setPrefWidth(160);
-            actionsCol.setCellFactory(col -> new TableCell<>() {
-                private final Button editBtn   = new Button("Edit");
-                private final Button deleteBtn = new Button("Delete");
-                private final HBox   box       = new HBox(6, editBtn, deleteBtn);
-                {
-                    editBtn.getStyleClass().add("btn-secondary");
-                    editBtn.setStyle("-fx-font-size: 11px; -fx-padding: 3 10;");
-                    deleteBtn.getStyleClass().add("btn-danger");
-                    deleteBtn.setStyle("-fx-font-size: 11px; -fx-padding: 3 10;");
-                    editBtn.setOnAction(e -> {
-                        Profile p = getTableView().getItems().get(getIndex());
-                        profileBeingEdited = p;
-                        profileNameField.setText(p.getName());
-                        profileRotationSlider.setValue(p.getRotation());
-                        profileBrightnessSlider.setValue(p.getBrightness());
-                        profileFormTitle.setText("Edit profile");
-                        profileSaveButton.setText("Update profile");
-                        showProfileFeedback("Editing: " + p.getName(), true);
-                    });
-                    deleteBtn.setOnAction(e -> {
-                        Profile p = getTableView().getItems().get(getIndex());
-                        Alert confirm = new Alert(Alert.AlertType.CONFIRMATION);
-                        confirm.setTitle("Delete Profile");
-                        confirm.setHeaderText("Delete '" + p.getName() + "'?");
-                        confirm.setContentText("This cannot be undone.");
-                        confirm.showAndWait().ifPresent(response -> {
-                            if (response == ButtonType.OK) {
-                                try {
-                                    profileManager.deleteProfile(p.getId());
-                                    showProfileFeedback("Profile deleted.", true);
-                                    loadProfileTable();
-                                    handleClearProfileForm();
-                                } catch (Exception ex) {
-                                    showProfileFeedback(
-                                            "Could not delete: " + ex.getMessage(), false);
-                                }
-                            }
-                        });
-                    });
-                }
-                @Override
-                protected void updateItem(Void item, boolean empty) {
-                    super.updateItem(item, empty);
-                    setGraphic(empty ? null : box);
-                }
-            });
-            profileTable.getColumns().add(actionsCol);
-            loadProfileTable();
-        }
-
-        // Profile sliders
-        if (profileRotationSlider != null) {
-            profileRotationSlider.setMin(-180);
-            profileRotationSlider.setMax(180);
-            profileRotationSlider.setValue(0);
-            profileRotationSlider.setMajorTickUnit(45);
-            profileRotationSlider.setSnapToTicks(false);
-            profileRotationSlider.valueProperty().addListener((obs, oldVal, newVal) -> {
-                int snapped = ((int) Math.round(newVal.doubleValue() / 5)) * 5;
-                profileRotationSlider.setValue(snapped);
-                profileRotationValueLabel.setText(snapped + "°");
-            });
-        }
-        if (profileBrightnessSlider != null) {
-            profileBrightnessSlider.setMin(0.1);
-            profileBrightnessSlider.setMax(3.0);
-            profileBrightnessSlider.setValue(1.0);
-            profileBrightnessSlider.valueProperty().addListener((obs, oldVal, newVal) -> {
-                double rounded = Math.round(newVal.doubleValue() * 10.0) / 10.0;
-                profileBrightnessValueLabel.setText(String.valueOf(rounded));
-            });
-        }
-
         // When user selected — show assigned profiles
         userTable.getSelectionModel().selectedItemProperty().addListener(
                 (obs, oldVal, newVal) -> {
@@ -308,6 +183,7 @@ public class AdminController {
         loadUsers();
         loadProfiles();
 
+        // Save default content for nav restore
         Platform.runLater(() -> {
             if (contentArea != null) defaultContent = contentArea.getContent();
         });
@@ -358,6 +234,7 @@ public class AdminController {
         userCountBadge.setText(String.valueOf(filtered.size()));
     }
 
+    // ── Clear search ──────────────────────────────────────────────────────────
     @FXML
     private void handleClearSearch() {
         if (searchField != null) searchField.clear();
@@ -366,7 +243,7 @@ public class AdminController {
         userCountBadge.setText(String.valueOf(allUsers.size()));
     }
 
-    // ── Load profiles into ComboBox ───────────────────────────────────────────
+    // ── Load profiles into assignment ComboBox ────────────────────────────────
     private void loadProfiles() {
         try {
             if (profileComboBox == null) return;
@@ -374,23 +251,6 @@ public class AdminController {
             profileComboBox.getItems().addAll(profileDAO.getAllProfileNames());
         } catch (Exception e) {
             showFeedback("Could not load profiles: " + e.getMessage(), false);
-        }
-    }
-
-    // ── Load profile table ────────────────────────────────────────────────────
-    private void loadProfileTable() {
-        try {
-            if (profileTable == null) return;
-            ObservableList<Profile> profiles =
-                    FXCollections.observableArrayList(profileManager.getAllProfiles());
-            profileTable.setItems(profiles);
-            if (profileCountBadge != null)
-                profileCountBadge.setText(String.valueOf(profiles.size()));
-        } catch (Exception e) {
-            if (profileFeedbackLabel != null) {
-                profileFeedbackLabel.setText("Could not load profiles: " + e.getMessage());
-                profileFeedbackLabel.setTextFill(Color.web("#E53E3E"));
-            }
         }
     }
 
@@ -407,7 +267,7 @@ public class AdminController {
         }
     }
 
-    // ── Save user ─────────────────────────────────────────────────────────────
+    // ── Save user (create or update) ──────────────────────────────────────────
     @FXML
     private void handleSaveUser() {
         String username = usernameField.getText().trim();
@@ -420,11 +280,13 @@ public class AdminController {
                         SessionManager.getInstance().getCurrentUser().getId(),
                         "User created: " + username);
                 } catch (Exception ignored) {}
-                loadUsers(); handleClearForm();
+                loadUsers();
+                handleClearForm();
                 showFeedback("User '" + username + "' created successfully!", true);
             } else {
                 userManager.updateUser(userBeingEdited.getId(), username, password, role);
-                loadUsers(); handleClearForm();
+                loadUsers();
+                handleClearForm();
                 showFeedback("User '" + username + "' updated successfully!", true);
             }
         } catch (Exception e) {
@@ -432,10 +294,14 @@ public class AdminController {
         }
     }
 
+    // ── Edit selected user ────────────────────────────────────────────────────
     @FXML
     private void handleEditUser() {
         User selected = userTable.getSelectionModel().getSelectedItem();
-        if (selected == null) { showFeedback("Please select a user to edit.", false); return; }
+        if (selected == null) {
+            showFeedback("Please select a user to edit.", false);
+            return;
+        }
         userBeingEdited = selected;
         usernameField.setText(selected.getUsername());
         passwordField.clear();
@@ -446,10 +312,14 @@ public class AdminController {
                 + " — leave password blank to keep existing.", true);
     }
 
+    // ── Deactivate selected user ──────────────────────────────────────────────
     @FXML
     private void handleDeleteUser() {
         User selected = userTable.getSelectionModel().getSelectedItem();
-        if (selected == null) { showFeedback("Please select a user to deactivate.", false); return; }
+        if (selected == null) {
+            showFeedback("Please select a user to deactivate.", false);
+            return;
+        }
         Alert confirm = new Alert(Alert.AlertType.CONFIRMATION);
         confirm.setTitle("Deactivate User");
         confirm.setHeaderText("Deactivate '" + selected.getUsername() + "'?");
@@ -463,7 +333,8 @@ public class AdminController {
                             "User deactivated: " + selected.getUsername());
                     } catch (Exception ignored) {}
                     showFeedback("User deactivated.", true);
-                    loadUsers(); handleClearForm();
+                    loadUsers();
+                    handleClearForm();
                 } catch (Exception e) {
                     showFeedback("Could not deactivate: " + e.getMessage(), false);
                 }
@@ -471,10 +342,14 @@ public class AdminController {
         });
     }
 
+    // ── Reactivate selected user ──────────────────────────────────────────────
     @FXML
     private void handleReactivateUser() {
         User selected = userTable.getSelectionModel().getSelectedItem();
-        if (selected == null) { showFeedback("Please select a user to reactivate.", false); return; }
+        if (selected == null) {
+            showFeedback("Please select a user to reactivate.", false);
+            return;
+        }
         try {
             userManager.reactivateUser(selected.getId());
             try { logManager.log("USER_REACTIVATED",
@@ -488,15 +363,25 @@ public class AdminController {
         }
     }
 
+    // ── Assign profile to selected user ───────────────────────────────────────
     @FXML
     private void handleAssignProfile() {
         User selected          = userTable.getSelectionModel().getSelectedItem();
         String selectedProfile = profileComboBox.getValue();
-        if (selected == null) { showFeedback("Please select a user from the table first.", false); return; }
-        if (selectedProfile == null) { showFeedback("Please select a profile from the dropdown.", false); return; }
+        if (selected == null) {
+            showFeedback("Please select a user from the table first.", false);
+            return;
+        }
+        if (selectedProfile == null) {
+            showFeedback("Please select a profile from the dropdown.", false);
+            return;
+        }
         try {
             int profileId = profileDAO.getProfileIdByName(selectedProfile);
-            if (profileId == -1) { showFeedback("Profile not found in database.", false); return; }
+            if (profileId == -1) {
+                showFeedback("Profile not found in database.", false);
+                return;
+            }
             profileDAO.assignProfileToUser(selected.getId(), profileId);
             showFeedback("Profile '" + selectedProfile + "' assigned to '"
                     + selected.getUsername() + "'!", true);
@@ -507,77 +392,12 @@ public class AdminController {
         }
     }
 
-    @FXML
-    private void handleSaveProfile() {
-        String name       = profileNameField.getText().trim();
-        float  rotation   = (float) profileRotationSlider.getValue();
-        float  brightness = (float) profileBrightnessSlider.getValue();
-        int    clientId   = 1; // TODO: wire profileClientComboBox
-        try {
-            if (profileBeingEdited == null) {
-                profileManager.createProfile(name, rotation, brightness, clientId);
-                loadProfileTable(); handleClearProfileForm();
-                showProfileFeedback("Profile '" + name + "' created!", true);
-            } else {
-                profileManager.updateProfile(
-                        profileBeingEdited.getId(), name, rotation, brightness, clientId);
-                loadProfileTable(); handleClearProfileForm();
-                showProfileFeedback("Profile '" + name + "' updated!", true);
-            }
-        } catch (Exception e) {
-            showProfileFeedback(e.getMessage(), false);
-        }
-    }
-
-    @FXML
-    private void handleEditProfile() {
-        Profile selected = profileTable.getSelectionModel().getSelectedItem();
-        if (selected == null) { showProfileFeedback("Please select a profile to edit.", false); return; }
-        profileBeingEdited = selected;
-        profileNameField.setText(selected.getName());
-        profileRotationSlider.setValue(selected.getRotation());
-        profileBrightnessSlider.setValue(selected.getBrightness());
-        profileFormTitle.setText("Edit profile");
-        profileSaveButton.setText("Update profile");
-        showProfileFeedback("Editing: " + selected.getName(), true);
-    }
-
-    @FXML
-    private void handleDeleteProfile() {
-        Profile selected = profileTable.getSelectionModel().getSelectedItem();
-        if (selected == null) { showProfileFeedback("Please select a profile to delete.", false); return; }
-        Alert confirm = new Alert(Alert.AlertType.CONFIRMATION);
-        confirm.setTitle("Delete Profile");
-        confirm.setHeaderText("Delete '" + selected.getName() + "'?");
-        confirm.setContentText("This cannot be undone.");
-        confirm.showAndWait().ifPresent(response -> {
-            if (response == ButtonType.OK) {
-                try {
-                    profileManager.deleteProfile(selected.getId());
-                    showProfileFeedback("Profile deleted.", true);
-                    loadProfileTable(); handleClearProfileForm();
-                } catch (Exception e) {
-                    showProfileFeedback("Could not delete: " + e.getMessage(), false);
-                }
-            }
-        });
-    }
-
-    @FXML
-    public void handleClearProfileForm() {
-        profileBeingEdited = null;
-        if (profileNameField != null)        profileNameField.clear();
-        if (profileRotationSlider != null)   profileRotationSlider.setValue(0);
-        if (profileBrightnessSlider != null) profileBrightnessSlider.setValue(1.0);
-        if (profileFormTitle != null)        profileFormTitle.setText("Create new profile");
-        if (profileSaveButton != null)       profileSaveButton.setText("Create profile");
-        if (profileFeedbackLabel != null)    profileFeedbackLabel.setText("");
-    }
-
+    // ── Clear user form ───────────────────────────────────────────────────────
     @FXML
     public void handleClearForm() {
         userBeingEdited = null;
-        usernameField.clear(); passwordField.clear();
+        usernameField.clear();
+        passwordField.clear();
         roleComboBox.setValue("User");
         formTitle.setText("Create New User");
         saveButton.setText("Create User");
@@ -585,6 +405,7 @@ public class AdminController {
         if (assignedProfilesLabel != null) assignedProfilesLabel.setText("");
     }
 
+    // ── Theme toggle ──────────────────────────────────────────────────────────
     @FXML
     private void handleThemeToggle() {
         isDarkMode = !isDarkMode;
@@ -597,6 +418,7 @@ public class AdminController {
         themeToggle.setText(isDarkMode ? "☀  Light mode" : "☾  Dark mode");
     }
 
+    // ── Logout ────────────────────────────────────────────────────────────────
     @FXML
     private void handleLogout() {
         SessionManager.getInstance().logout();
@@ -608,26 +430,41 @@ public class AdminController {
         setActivePage("Dashboard", "Overview of the system");
         showDefaultContent();
     }
+
     @FXML private void handleNavUsers() {
         setActivePage("Users", "Manage user accounts");
         showDefaultContent();
-        if (usersSection != null)    { usersSection.setVisible(true);     usersSection.setManaged(true); }
-        if (profilesSection != null) { profilesSection.setVisible(false); profilesSection.setManaged(false); }
         loadUsers();
     }
+
     @FXML private void handleNavProfiles() {
         setActivePage("Profiles", "Manage scanning profiles");
-        showDefaultContent();
-        if (usersSection != null)    { usersSection.setVisible(false);    usersSection.setManaged(false); }
-        if (profilesSection != null) { profilesSection.setVisible(true);  profilesSection.setManaged(true); }
-        loadProfileTable();
+        loadView("/dk/easv/scanova/profileView.fxml");
     }
-    @FXML private void handleNavClients()   { setActivePage("Clients",   "Manage client organisations"); loadView("/dk/easv/scanova/clientView.fxml"); }
-    @FXML private void handleNavLogs()      { setActivePage("Logs",      "Audit trail of all actions");  loadView("/dk/easv/scanova/logView.fxml"); }
-    @FXML private void handleNavBoxes()     { setActivePage("Boxes",     "View scanned boxes"); }
-    @FXML private void handleNavDocuments() { setActivePage("Documents", "View scanned documents"); }
-    @FXML private void handleNavSettings()  { setActivePage("Settings",  "System configuration"); }
 
+    @FXML private void handleNavClients() {
+        setActivePage("Clients", "Manage client organisations");
+        loadView("/dk/easv/scanova/clientView.fxml");
+    }
+
+    @FXML private void handleNavLogs() {
+        setActivePage("Logs", "Audit trail of all actions");
+        loadView("/dk/easv/scanova/logView.fxml");
+    }
+
+    @FXML private void handleNavBoxes() {
+        setActivePage("Boxes", "View scanned boxes");
+    }
+
+    @FXML private void handleNavDocuments() {
+        setActivePage("Documents", "View scanned documents");
+    }
+
+    @FXML private void handleNavSettings() {
+        setActivePage("Settings", "System configuration");
+    }
+
+    // ── Load external FXML into content area ──────────────────────────────────
     private void loadView(String fxmlPath) {
         if (contentArea == null) return;
         try {
@@ -640,11 +477,13 @@ public class AdminController {
         }
     }
 
+    // ── Restore default content ───────────────────────────────────────────────
     private void showDefaultContent() {
         if (contentArea != null && defaultContent != null)
             contentArea.setContent(defaultContent);
     }
 
+    // ── Set active page ───────────────────────────────────────────────────────
     private void setActivePage(String title, String subtitle) {
         pageTitle.setText(title);
         contentTitle.setText(title);
@@ -668,16 +507,14 @@ public class AdminController {
         }
     }
 
-    private void setActive(Button btn) { btn.getStyleClass().add("nav-item-active"); }
-
-    private void showFeedback(String message, boolean success) {
-        feedbackLabel.setText(message);
-        feedbackLabel.setTextFill(success ? Color.web("#2ECC9A") : Color.web("#E53E3E"));
+    private void setActive(Button btn) {
+        btn.getStyleClass().add("nav-item-active");
     }
 
-    private void showProfileFeedback(String message, boolean success) {
-        if (profileFeedbackLabel == null) return;
-        profileFeedbackLabel.setText(message);
-        profileFeedbackLabel.setTextFill(success ? Color.web("#2ECC9A") : Color.web("#E53E3E"));
+    // ── Feedback helper ───────────────────────────────────────────────────────
+    private void showFeedback(String message, boolean success) {
+        feedbackLabel.setText(message);
+        feedbackLabel.setTextFill(
+                success ? Color.web("#2ECC9A") : Color.web("#E53E3E"));
     }
 }

@@ -23,7 +23,7 @@ public class LoginController {
             userManager = new UserManager();
             logManager  = new LogManager();
         } catch (Exception e) {
-            errorLabel.setText("Could not connect to database.");
+            errorLabel.setText("Login failed. Please try again or contact your administrator!");
         }
     }
 
@@ -60,7 +60,7 @@ public class LoginController {
             }
 
         } catch (Exception e) {
-            errorLabel.setText("Something went wrong: " + e.getMessage());
+            errorLabel.setText("Login failed. Please try again or contact your administrator!");
         }
     }
 }
