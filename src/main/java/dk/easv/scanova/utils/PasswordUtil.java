@@ -1,15 +1,20 @@
 package dk.easv.scanova.utils;
 
+import org.mindrot.jbcrypt.BCrypt;
+
 public class PasswordUtil {
 
     public static String hash(String plainPassword) {
-        return plainPassword; // Sprint 3 — add BCrypt here
+        return BCrypt.hashpw(plainPassword, BCrypt.gensalt(12));
     }
 
     public static boolean verify(String plainPassword, String hashedPassword) {
         if (plainPassword == null || hashedPassword == null) return false;
-        return plainPassword.equals(hashedPassword);
+        try {
+            return BCrypt.checkpw(plainPassword, hashedPassword);
+        } catch (Exception e) {
+            return false;
+        }
     }
-
     private PasswordUtil() {}
 }

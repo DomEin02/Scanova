@@ -9,7 +9,7 @@ import java.util.List;
 public class PageDAO {
 
     public void insertPage(ScannedFile file) throws Exception {
-        String sql = "INSERT INTO pages (document_id, page_number, rotation) VALUES (?, ?, ?)";
+        String sql = "INSERT INTO pages (document_id, page_number, rotation) VALUES (?, ?, ?, ?)";
 
         try (Connection conn = DBConnector.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {

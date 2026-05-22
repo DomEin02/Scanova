@@ -22,4 +22,23 @@ public class LogManager {
     public List<String[]> getLogsByType(String action) throws Exception {
         return logDAO.getLogsByType(action);
     }
+
+    public List<String[]> getFilteredLogs(List<String> types, String fromDate, String toDate) throws Exception {
+        return logDAO.getFilteredLogs(types, fromDate, toDate);
+    }
+
+    // Map action string to a display category
+    public static String getCategory(String action) {
+        if (action == null) return "OTHER";
+        return switch (action) {
+            case "LOGIN_SUCCESS", "LOGIN_FAILED" -> "LOGIN";
+            case "SCAN_COMPLETE", "FILE_DELETED" -> "SCANNING";
+            case "USER_CREATED", "USER_DEACTIVATED",
+                 "USER_REACTIVATED", "CLIENT_CREATED",
+                 "CLIENT_UPDATED", "CLIENT_DEACTIVATED",
+                 "CLIENT_REACTIVATED" -> "MANAGEMENT";
+            case "ERROR" -> "ERROR";
+            default -> "OTHER";
+        };
+    }
 }

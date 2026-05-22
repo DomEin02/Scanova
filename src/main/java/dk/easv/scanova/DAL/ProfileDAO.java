@@ -3,6 +3,7 @@ package dk.easv.scanova.DAL;
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
+import dk.easv.scanova.Model.Profile;
 
 public class ProfileDAO {
 
@@ -69,5 +70,71 @@ public class ProfileDAO {
             }
         }
         return names;
+    }
+
+    public List<Profile> getAllProfiles() throws Exception {
+        String sql = "SELECT id, name, rotation, brightness, clientId, is_active " + "FROM profiles WHERE is_active = 1";
+        List<Profile> profiles = new ArrayList<>();
+
+        try (Connection conn = DBConnector.getConnection();
+             Statement st = conn.createStatement();
+             ResultSet rs = st.executeQuery(sql)) {
+
+            while (rs.next()) {
+                Profile p = new Profile(
+                        rs.getInt("id"),
+                        rs.getString("name"),
+                        rs.getFloat("rotation"),
+                        rs.getFloat("brightness"),
+                        rs.getInt("clientId"),
+                        rs.getBoolean("is_active")
+                );
+                profiles.add(p);
+            }
+        }
+        return profiles;
+    }
+
+    public void createProfile(Profile profile) throws Exception {
+        String sql = "INSERT INTO profiles (name, rotation, brightness, clientId) " +
+                "VALUES (?, ?, ?, ?)";
+
+        try (Connection conn = DBConnector.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+
+            ps.setString(1, profile.getName());
+            ps.setFloat(2, profile.getRotation());
+            ps.setFloat(3, profile.getBrightness());
+            ps.setInt(4, profile.getClientId());
+
+            ps.executeUpdate();
+        }
+    }
+
+    public void updateProfile(Profile profile) throws Exception {
+        String sql = "UPDATE profiles SET name = ?, rotation = ?, " +
+                "brightness = ?, clientId = ? WHERE id = ?";
+
+        try (Connection conn = DBConnector.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+
+            ps.setString(1, profile.getName());
+            ps.setFloat(2, profile.getRotation());
+            ps.setFloat(3, profile.getBrightness());
+            ps.setInt(4, profile.getClientId());
+            ps.setInt(5, profile.getId());
+
+            ps.executeUpdate();
+        }
+    }
+
+    public void deleteProfile(int id) throws Exception {
+        String sql = "UPDATE profiles SET is_active = 0 WHERE id = ?";
+
+        try (Connection conn = DBConnector.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, id);
+            ps.executeUpdate();
+        }
     }
 }

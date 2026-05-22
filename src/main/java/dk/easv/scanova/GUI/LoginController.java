@@ -10,19 +10,20 @@ import javafx.scene.control.*;
 
 public class LoginController {
 
-    @FXML private TextField usernameField;
+    @FXML private TextField    usernameField;
     @FXML private PasswordField passwordField;
-    @FXML private Label errorLabel;
+    @FXML private Label         errorLabel;
 
-    private final UserManager userManager = new UserManager();
-    private final LogManager logManager = new LogManager();
+    private UserManager userManager;
+    private LogManager  logManager;
 
     @FXML
     public void initialize() {
         try {
-            new UserManager();
+            userManager = new UserManager();
+            logManager  = new LogManager();
         } catch (Exception e) {
-            errorLabel.setText("Could not connect to database.");
+            errorLabel.setText("Login failed. Please try again or contact your administrator!");
         }
     }
 
@@ -37,38 +38,20 @@ public class LoginController {
             return;
         }
 
-        // Temp hardcoded login
-        if (username.equals("admin") && password.equals("admin123")) {
-            User tempUser = new User(1, "admin", "", "Admin");
-            SessionManager.getInstance().setCurrentUser(tempUser);
-            logManager.log("LOGIN_SUCCESS", 1, "Hardcoded login: admin");
-            SceneManager.load("adminView.fxml");
-            return;
-        }
-
-        if (username.equals("scanner") && password.equals("scan123")) {
-            User tempUser = new User(2, "scanner", "", "User");
-            SessionManager.getInstance().setCurrentUser(tempUser);
-            logManager.log("LOGIN_SUCCESS", 2, "Hardcoded login: scanner");
-            SceneManager.load("scanView.fxml");
-            return;
-        }
-
-        // Real DB login
         try {
             User user = userManager.login(username, password);
 
             if (user == null) {
                 errorLabel.setText("Incorrect username or password.");
                 passwordField.clear();
-                logManager.log("LOGIN_FAILED", -1,
-                        "Failed login attempt: " + username);
+                try { logManager.log("LOGIN_FAILED", -1,
+                        "Failed login: " + username); } catch (Exception ignored) {}
                 return;
             }
 
             SessionManager.getInstance().setCurrentUser(user);
-            logManager.log("LOGIN_SUCCESS", user.getId(),
-                    "Login: " + user.getUsername());
+            try { logManager.log("LOGIN_SUCCESS", user.getId(),
+                    "Login: " + user.getUsername()); } catch (Exception ignored) {}
 
             if (user.isAdmin()) {
                 SceneManager.load("adminView.fxml");
@@ -77,7 +60,7 @@ public class LoginController {
             }
 
         } catch (Exception e) {
-            errorLabel.setText("Something went wrong: " + e.getMessage());
+            errorLabel.setText("Login failed. Please try again or contact your administrator!");
         }
     }
 }
