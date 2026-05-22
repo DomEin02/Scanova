@@ -1,7 +1,7 @@
 package dk.easv.scanova.BLL;
 
 import dk.easv.scanova.DAL.UserDAO;
-import dk.easv.scanova.Model.User;
+import dk.easv.scanova.BE.User;
 import dk.easv.scanova.utils.PasswordUtil;
 import java.util.List;
 

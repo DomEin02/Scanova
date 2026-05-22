@@ -6,51 +6,62 @@ import java.util.List;
 
 public class FileDAO {
 
-    // INSERT file and return generated id
-    public int createFileAndGetId(int caseId, String filePath) {
-        String sql = "INSERT INTO files (case_id, file_path) OUTPUT INSERTED.id VALUES (?, ?)";
+    public void insertFile(int documentId,
+                           int fileReferenceId,
+                           int fileOrderId,
+                           String filePath,
+                           int rotation,
+                           boolean barcodeDetected,
 
-        try (Connection conn = DBConnector.getConnection();
-             PreparedStatement stmt = conn.prepareStatement(sql)) {
+                           int scannedBy) throws Exception {
 
-            stmt.setInt(1, caseId);
-            stmt.setString(2, filePath);
-
-            ResultSet rs = stmt.executeQuery();
-            if (rs.next()) {
-                return rs.getInt(1);
-            }
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
-        return -1;
-    }
-
-    // Simple insert without returning id
-    // case_id = 1 hardcoded until full chain is built
-    public void insertFile(String filePath) throws Exception {
-        String sql = "INSERT INTO files (case_id, file_path) VALUES (?, ?)";
+        String sql =
+                "INSERT INTO files " +
+                        "(document_id, file_reference_id, file_order_id, file_path, rotation, barcode_Detected, scanned_by) " +
+                        "VALUES (?, ?, ?, ?, ?, ?, ?)";
 
         try (Connection conn = DBConnector.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
 
-            ps.setInt(1, 1);
-            ps.setString(2, filePath);
-            ps.executeUpdate();
+            ps.setInt(1, documentId);
+            ps.setInt(2, fileReferenceId);
+            ps.setInt(3, fileOrderId);
+            ps.setString(4, filePath);
+            ps.setInt(5, rotation);
+            ps.setBoolean(6, barcodeDetected);
+            ps.setInt(7, scannedBy);
 
-            System.out.println("Saved file path to DB: " + filePath);
+            ps.executeUpdate();
+        }
+    }
+
+    public void markBarcodeDetected(int fileId) {
+
+        String sql =
+                "UPDATE files " +
+                        "SET barcode_detected = 1, barcode_detected_at = GETDATE() " +
+                        "WHERE id = ?";
+
+        try (Connection conn = DBConnector.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+
+            stmt.setInt(1, fileId);
+            stmt.executeUpdate();
+
+        } catch (SQLException e) {
+            e.printStackTrace();
         }
     }
 
     // GET all file paths for a case
-    public List<String> getFilesByCaseId(int caseId) throws Exception {
-        String sql = "SELECT file_path FROM files WHERE case_id = ?";
+    public List<String> getFilesByDocumentId(int documentId) throws Exception {
+        String sql = "SELECT file_path FROM files WHERE document_id = ?";
         List<String> paths = new ArrayList<>();
 
         try (Connection conn = DBConnector.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
 
-            ps.setInt(1, caseId);
+            ps.setInt(1, documentId);
             ResultSet rs = ps.executeQuery();
             while (rs.next()) {
                 paths.add(rs.getString("file_path"));

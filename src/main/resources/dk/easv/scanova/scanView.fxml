@@ -21,9 +21,8 @@
             <Button text="Export TIFF (F4)" fx:id="exportButton"/>
             <Separator />
             <Label text="Profile:" />
-            <ComboBox fx:id="profileComboBox" prefWidth="150"
-                      focusTraversable="true"/>
-            <Label text="Box ID:" />
+            <ComboBox fx:id="profileComboBox"/>
+            <Label text="Box ID" />
             <TextField fx:id="boxIdField" prefWidth="100"
                        focusTraversable="true"/>
             <Separator />

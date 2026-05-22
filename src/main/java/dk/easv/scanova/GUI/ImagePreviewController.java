@@ -1,7 +1,7 @@
 package dk.easv.scanova.GUI;
 
 import dk.easv.scanova.BLL.FileManager;
-import dk.easv.scanova.Model.ScannedFile;
+import dk.easv.scanova.BE.ScannedFile;
 import javafx.application.Platform;
 import javafx.fxml.FXML;
 import javafx.scene.image.Image;

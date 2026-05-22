@@ -4,7 +4,7 @@ import dk.easv.scanova.BLL.LogManager;
 import dk.easv.scanova.BLL.SessionManager;
 import dk.easv.scanova.BLL.UserManager;
 import dk.easv.scanova.DAL.ProfileDAO;
-import dk.easv.scanova.Model.User;
+import dk.easv.scanova.BE.User;
 import dk.easv.scanova.SceneManager;
 import javafx.application.Platform;
 import javafx.beans.property.SimpleStringProperty;
