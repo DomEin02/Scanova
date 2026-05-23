@@ -22,15 +22,37 @@ public class ScanSessionService {
 
         Document currentDocument = session.getCurrentDocument();
 
-        if (file.isBarcodeDetected() || currentDocument == null) {
+        if (currentDocument == null) {
 
             currentDocument = documentDAO.createDocument(
                     session.getBox().getId()
             );
 
+            currentDocument.setStatus(Document.DocumentStatus.IN_PROGRESS);
+
             session.setCurrentDocument(currentDocument);
 
-            System.out.println("📄 New document created: " +
+            System.out.println("📄 First document created: " +
+                    currentDocument.getDocumentId());
+        }
+
+        else if (file.isBarcodeDetected()) {
+
+            currentDocument.setStatus(
+                    Document.DocumentStatus.WAITING_FOR_QA
+            );
+
+            currentDocument = documentDAO.createDocument(
+                    session.getBox().getId()
+            );
+
+            currentDocument.setStatus(
+                    Document.DocumentStatus.IN_PROGRESS
+            );
+
+            session.setCurrentDocument(currentDocument);
+
+            System.out.println("📄 New document created after barcode: " +
                     currentDocument.getDocumentId());
         }
 

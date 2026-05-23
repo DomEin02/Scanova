@@ -6,6 +6,7 @@ import java.util.List;
 public class Document {
     private int documentId;
     private int boxId;
+    private DocumentStatus status;
 
     private List<dk.easv.scanova.BE.ScannedFile> files = new ArrayList<>();
 
@@ -13,10 +14,15 @@ public class Document {
 
         this.documentId = documentId;
         this.boxId = boxId;
+        this.status = DocumentStatus.IN_PROGRESS;
     }
 
     public int getDocumentId() {
         return documentId;
+    }
+
+    public void setStatus(Document.DocumentStatus status) {
+        this.status = status;
     }
 
     public int getBoxId() {
@@ -37,5 +43,12 @@ public class Document {
         return "Document #" + documentId +
                 " [Box: " + boxId + "] (" +
                 files.size() + " files)";
+    }
+
+    public enum DocumentStatus {
+        IN_PROGRESS,
+        WAITING_FOR_QA,
+        QA_COMPLETED,
+        EXPORTED
     }
 }

@@ -8,13 +8,16 @@ import dk.easv.scanova.SceneManager;
 import javafx.fxml.FXML;
 import javafx.scene.control.*;
 import javafx.scene.layout.VBox;
+import dk.easv.scanova.BE.Document;
+
+import static dk.easv.scanova.BE.Document.DocumentStatus.*;
 
 public class ScanViewController {
 
     @FXML private Label statusLabel;
     @FXML private ComboBox<Box> boxComboBox;
     @FXML private TextField documentTitleField;
-    @FXML private ListView<ScannedFile> fileListView;
+    @FXML private ListView<Document> documentListView;
 
     @FXML private Button moveUpButton;
     @FXML private Button moveDownButton;
@@ -26,6 +29,7 @@ public class ScanViewController {
     @FXML private void onMoveUp() {}
     @FXML private void onMoveDown() {}
     @FXML private void onDeleteFile() {}
+    @FXML public void initialize() {setupListView();}
 
     private final ScanSessionService scanSessionService =
             new ScanSessionService(new DocumentDAO(), new FileDAO());
@@ -73,7 +77,55 @@ public class ScanViewController {
 
     public VBox imagePreviewComponent;
 
+    private void setupListView() {
+
+        documentListView.setCellFactory(list -> new ListCell<>() {
+
+            @Override
+            protected void updateItem(Document doc, boolean empty) {
+                super.updateItem(doc, empty);
+
+                if (empty || doc == null) {
+                    setText(null);
+                    setStyle("");
+                    return;
+                }
+
+                setText("Document #" + doc.getDocumentId());
+
+                switch (doc.getStatus()) {
+
+                    case IN_PROGRESS:
+                        setStyle("-fx-background-color: #fff3a0;");
+                        break;
+
+                    case WAITING_FOR_QA:
+                        setStyle("-fx-background-color: #ff9a9a;");
+                        break;
+
+                    case QA_COMPLETED:
+                        setStyle("-fx-background-color: #9aff9a;");
+                        break;
+
+                    case EXPORTED:
+                        setStyle("-fx-background-color: #9ac7ff;");
+                        break;
+                }
+            }
+        });
+    }
+
     private void refreshUI() {
-        // opdater counters, table osv.
+
+        if (session.getCurrentDocument() != null) {
+
+            documentListView.setItems(
+                    javafx.collections.FXCollections.observableArrayList(
+                            session.getDocument()
+                    )
+            );
+        }
+
+        documentListView.refresh();
     }
 }

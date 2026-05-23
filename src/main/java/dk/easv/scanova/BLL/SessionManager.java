@@ -1,7 +1,6 @@
 package dk.easv.scanova.BLL;
 
 import dk.easv.scanova.BE.User;
-import dk.easv.scanova.Model.User;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 

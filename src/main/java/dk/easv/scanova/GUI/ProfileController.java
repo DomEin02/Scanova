@@ -2,7 +2,7 @@ package dk.easv.scanova.GUI;
 
 import dk.easv.scanova.BLL.ClientManager;
 import dk.easv.scanova.BLL.ProfileManager;
-import dk.easv.scanova.Model.Client;
+import dk.easv.scanova.BE.Client;
 import dk.easv.scanova.Model.Profile;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
