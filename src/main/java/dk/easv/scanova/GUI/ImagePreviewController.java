@@ -4,6 +4,7 @@ import dk.easv.scanova.BLL.FileManager;
 import dk.easv.scanova.BE.ScannedFile;
 import javafx.application.Platform;
 import javafx.fxml.FXML;
+import javafx.scene.control.TextField;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.StackPane;
@@ -15,6 +16,7 @@ public class ImagePreviewController {
     @FXML private StackPane imageContainer;
     @FXML private ImageView imageView;
     @FXML private Slider rotationSlider;
+    @FXML private TextField rotationField;
 
     private int currentRotation = 0;
     private ScannedFile currentFile;
@@ -22,7 +24,8 @@ public class ImagePreviewController {
     private final FileManager fileManager = new FileManager();
 
     @FXML
-    private void initialize() {
+    private void initialize() {;
+
         imageContainer.layoutBoundsProperty().addListener((obs, o, n) -> {
             Rectangle clip = new Rectangle(n.getWidth(), n.getHeight());
             imageContainer.setClip(clip);
@@ -33,9 +36,25 @@ public class ImagePreviewController {
         imageContainer.heightProperty().addListener((obs, o, n) ->
                 Platform.runLater(this::applyImageLayout));
 
+        // SLIDER → FIELD
         rotationSlider.valueProperty().addListener((obs, oldVal, newVal) -> {
-            currentRotation = ((int) Math.round(newVal.doubleValue() / 5)) * 5;
+            currentRotation = (int) Math.round(newVal.doubleValue());
+            rotationField.setText(String.valueOf(currentRotation));
             applyImageLayout();
+        });
+
+        // FIELD → SLIDER
+        rotationField.setOnAction(e -> {
+            try {
+                int value = Integer.parseInt(rotationField.getText());
+                value = Math.max(-180, Math.min(180, value));
+                currentRotation = value;
+                rotationSlider.setValue(value);
+                applyImageLayout();
+
+            } catch (NumberFormatException ex) {
+                rotationField.setText(String.valueOf(currentRotation));
+            }
         });
 
         rotationSlider.setOnMouseReleased(event -> {
@@ -51,7 +70,9 @@ public class ImagePreviewController {
     public void setImage(Image image, ScannedFile file) {
         this.currentFile = file;
         imageView.setImage(image);
+
         currentRotation  = file.getRotation();
+
         double sliderValue = currentRotation > 180
                 ? currentRotation - 360
                 : currentRotation;
