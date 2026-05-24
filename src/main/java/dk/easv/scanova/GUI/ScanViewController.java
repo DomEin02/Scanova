@@ -8,28 +8,23 @@ import dk.easv.scanova.SceneManager;
 import javafx.fxml.FXML;
 import javafx.scene.control.*;
 import javafx.scene.layout.VBox;
-import dk.easv.scanova.BE.Document;
-
-import static dk.easv.scanova.BE.Document.DocumentStatus.*;
+import dk.easv.scanova.BE.ScannedFile;
 
 public class ScanViewController {
 
     @FXML private Label statusLabel;
-    @FXML private ComboBox<Box> boxComboBox;
+    @FXML private ComboBox<Box> profileComboBox;
     @FXML private TextField documentTitleField;
-    @FXML private ListView<Document> documentListView;
+    @FXML private ListView<ScannedFile> fileListView;
 
-    @FXML private Button moveUpButton;
-    @FXML private Button moveDownButton;
-    @FXML private Button deleteButton;
+    @FXML public Button moveUpButton;
+    @FXML public Button moveDownButton;
+    @FXML public Button deleteButton;
 
-    @FXML private Label scanCountLabel;
-    @FXML private Label documentCountLabel;
+    @FXML public Label scanCountLabel;
+    @FXML public Label documentCountLabel;
 
-    @FXML private void onMoveUp() {}
-    @FXML private void onMoveDown() {}
-    @FXML private void onDeleteFile() {}
-    @FXML public void initialize() {setupListView();}
+    public VBox imagePreviewComponent;
 
     private final ScanSessionService scanSessionService =
             new ScanSessionService(new DocumentDAO(), new FileDAO());
@@ -38,27 +33,18 @@ public class ScanViewController {
 
     private boolean scanning = false;
 
+    @FXML
+    public void initialize() {
+        setupListView();
+    }
+
     // SESSION START
     @FXML
     private void onStartScan() {
 
-        session.setBox(boxComboBox.getValue());
+        session.setBox(profileComboBox.getValue());
         session.setCurrentDocument(null);
         statusLabel.setText("Status: Scanning started");
-    }
-
-    @FXML
-    private void onOpenSlideshow() {
-        System.out.println("Slideshow not implemented yet");
-    }
-
-    // SCAN EVENT
-    @FXML
-    private void onFileScanned(ScannedFile file) {
-
-        scanSessionService.handleIncomingFile(session, file);
-
-        refreshUI();
     }
 
     //  STOP
@@ -75,57 +61,84 @@ public class ScanViewController {
         SceneManager.load("loginView.fxml");
     }
 
-    public VBox imagePreviewComponent;
+    @FXML
+    private void onOpenSlideshow() {
+        System.out.println("Slideshow not implemented yet");
+    }
 
+    // SCAN EVENT
+    @FXML
+    private void onFileScanned(ScannedFile file) {
+
+        scanSessionService.handleIncomingFile(session, file);
+
+        refreshUI();
+    }
+
+    // UI
     private void setupListView() {
 
-        documentListView.setCellFactory(list -> new ListCell<>() {
+        fileListView.setCellFactory(list -> new ListCell<>() {
 
             @Override
-            protected void updateItem(Document doc, boolean empty) {
-                super.updateItem(doc, empty);
+            protected void updateItem(ScannedFile file, boolean empty) {
+                super.updateItem(file, empty);
 
-                if (empty || doc == null) {
+                if (empty || file == null) {
                     setText(null);
                     setStyle("");
                     return;
                 }
-
-                setText("Document #" + doc.getDocumentId());
-
-                switch (doc.getStatus()) {
-
-                    case IN_PROGRESS:
-                        setStyle("-fx-background-color: #fff3a0;");
-                        break;
-
-                    case WAITING_FOR_QA:
-                        setStyle("-fx-background-color: #ff9a9a;");
-                        break;
-
-                    case QA_COMPLETED:
-                        setStyle("-fx-background-color: #9aff9a;");
-                        break;
-
-                    case EXPORTED:
-                        setStyle("-fx-background-color: #9ac7ff;");
-                        break;
-                }
+                setText("File #" + file.getFileOrderId());
             }
         });
     }
 
+    @FXML
+    public void onMoveUp() {
+        System.out.println("Move up clicked");
+    }
+
+    @FXML
+    public void onMoveDown() {
+        System.out.println("Move down clicked");
+    }
+
+    @FXML
+    public void onDeleteFile() {
+        System.out.println("Delete clicked");
+    }
+
     private void refreshUI() {
 
-        if (session.getCurrentDocument() != null) {
+        Document doc = session.getCurrentDocument();
 
-            documentListView.setItems(
-                    javafx.collections.FXCollections.observableArrayList(
-                            session.getCurrentDocument()
-                    )
-            );
+        if (doc == null) return;
+
+        // SHOW FILES
+        fileListView.setItems(
+                javafx.collections.FXCollections.observableArrayList(
+                        doc.getFiles()
+                )
+        );
+
+        // SHOW STATUS (DOCUMENT LEVEL)
+        statusLabel.setText("Status: " + doc.getStatus());
+
+        switch (doc.getStatus()) {
+
+            case IN_PROGRESS ->
+                    statusLabel.setStyle("-fx-background-color: #fff3a0;");
+
+            case WAITING_FOR_QA ->
+                    statusLabel.setStyle("-fx-background-color: #ff9a9a;");
+
+            case QA_COMPLETED ->
+                    statusLabel.setStyle("-fx-background-color: #9aff9a;");
+
+            case EXPORTED ->
+                    statusLabel.setStyle("-fx-background-color: #9ac7ff;");
         }
-
-        documentListView.refresh();
+        fileListView.refresh();
     }
 }
