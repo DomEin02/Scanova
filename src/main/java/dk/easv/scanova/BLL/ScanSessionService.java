@@ -34,9 +34,7 @@ public class ScanSessionService {
 
             System.out.println("📄 First document created: " +
                     currentDocument.getDocumentId());
-        }
-
-        else if (file.isBarcodeDetected()) {
+        } else if (file.isBarcodeDetected()) {
 
             currentDocument.setStatus(
                     Document.DocumentStatus.WAITING_FOR_QA

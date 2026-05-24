@@ -121,7 +121,7 @@ public class ScanViewController {
 
             documentListView.setItems(
                     javafx.collections.FXCollections.observableArrayList(
-                            session.getDocument()
+                            session.getCurrentDocument()
                     )
             );
         }

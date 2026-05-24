@@ -51,4 +51,7 @@ public class Document {
         QA_COMPLETED,
         EXPORTED
     }
+    public DocumentStatus getStatus() {
+        return status;
+    }
 }
