@@ -137,4 +137,33 @@ public class ProfileDAO {
             ps.executeUpdate();
         }
     }
+    public List<Profile> getAllProfilesIncludingInactive() throws Exception {
+        String sql = "SELECT id, name, rotation, brightness, clientId, is_active FROM profiles";
+        List<Profile> profiles = new ArrayList<>();
+
+        try (Connection conn = DBConnector.getConnection();
+             Statement st = conn.createStatement();
+             ResultSet rs = st.executeQuery(sql)) {
+            while (rs.next()) {
+                profiles.add(new Profile(
+                        rs.getInt("id"),
+                        rs.getString("name"),
+                        rs.getFloat("rotation"),
+                        rs.getFloat("brightness"),
+                        rs.getInt("clientId"),
+                        rs.getBoolean("is_active")
+                ));
+            }
+        }
+        return profiles;
+    }
+
+    public void reactivateProfile(int id) throws Exception {
+        String sql = "UPDATE profiles SET is_active = 1 WHERE id = ?";
+        try (Connection conn = DBConnector.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, id);
+            ps.executeUpdate();
+        }
+    }
 }

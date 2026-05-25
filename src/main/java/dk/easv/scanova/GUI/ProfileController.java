@@ -2,7 +2,7 @@ package dk.easv.scanova.GUI;
 
 import dk.easv.scanova.BLL.ClientManager;
 import dk.easv.scanova.BLL.ProfileManager;
-import dk.easv.scanova.BE.Client;
+import dk.easv.scanova.Model.Client;
 import dk.easv.scanova.Model.Profile;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
@@ -10,7 +10,6 @@ import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
 import javafx.scene.control.*;
 import javafx.scene.paint.Color;
-
 import java.util.List;
 
 public class ProfileController {
@@ -219,3 +218,38 @@ public class ProfileController {
         int    clientId       = selectedClient != null ? selectedClient.getId() : 0;
         try {
             if (profileBeingEdited == null) {
+                profileManager.createProfile(name, rotation, brightness, clientId);
+                loadProfileTable();
+                handleClearForm();
+                showFeedback("Profile '" + name + "' created!", true);
+            } else {
+                profileManager.updateProfile(
+                        profileBeingEdited.getId(), name, rotation, brightness, clientId);
+                loadProfileTable();
+                handleClearForm();
+                showFeedback("Profile '" + name + "' updated!", true);
+            }
+        } catch (Exception e) {
+            showFeedback(e.getMessage(), false);
+        }
+    }
+
+    @FXML
+    public void handleClearForm() {
+        profileBeingEdited = null;
+        profileNameField.clear();
+        profileRotationSlider.setValue(0);
+        profileBrightnessSlider.setValue(1.0);
+        profileClientComboBox.setValue(null);
+        profileFormTitle.setText("Create new profile");
+        profileSaveButton.setText("Create profile");
+        profileFeedbackLabel.setText("");
+    }
+
+    private void showFeedback(String message, boolean success) {
+        if (profileFeedbackLabel == null) return;
+        profileFeedbackLabel.setText(message);
+        profileFeedbackLabel.setTextFill(
+                success ? Color.web("#2ECC9A") : Color.web("#E53E3E"));
+    }
+}

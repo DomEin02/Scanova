@@ -36,6 +36,14 @@ public class ProfileManager {
         profileDAO.deleteProfile(id);
     }
 
+    public List<Profile> getAllProfilesIncludingInactive() throws Exception {
+        return profileDAO.getAllProfilesIncludingInactive();
+    }
+
+    public void reactivateProfile(int id) throws Exception {
+        profileDAO.reactivateProfile(id);
+    }
+
     private void validateName(String name) throws Exception {
         if (name == null || name.isBlank())
             throw new Exception("Profile name cannot be empty.");
@@ -59,4 +67,5 @@ public class ProfileManager {
         if (clientId <= 0)
             throw new Exception("Please select a client for this profile.");
     }
+
 }
