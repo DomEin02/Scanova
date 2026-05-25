@@ -1,6 +1,6 @@
 package dk.easv.scanova.DAL;
 
-import dk.easv.scanova.Model.User;
+import dk.easv.scanova.BE.User;
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;

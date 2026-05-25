@@ -6,6 +6,7 @@ import java.util.List;
 
 public class DocumentDAO {
 
+    // ── Create document under a case — used by ScanManager ───────────────────
     public int createDocument(int caseId, String title) throws Exception {
         String sql = "INSERT INTO documents (case_id, title, status) " +
                 "OUTPUT INSERTED.id VALUES (?, ?, 'In Progress')";

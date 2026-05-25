@@ -21,10 +21,10 @@ import java.util.stream.Collectors;
 
 public class AdminController {
 
-    // ── Root for CSS switch ───────────────────────────────────────────────────
+    // Root for CSS switch
     @FXML private BorderPane rootPane;
 
-    // ── Sidebar navigation ────────────────────────────────────────────────────
+    // Sidebar navigation
     @FXML private Button navUsers;
     @FXML private Button navClients;
     @FXML private Button navArchives;
@@ -34,7 +34,7 @@ public class AdminController {
     @FXML private Button navLogs;
     @FXML private Button navSettings;
 
-    // ── TopBar ────────────────────────────────────────────────────────────────
+    // TopBar
     @FXML private Label  loggedInLabel;
     @FXML private Label  loggedInRole;
     @FXML private Label  loggedInTime;
@@ -249,7 +249,6 @@ public class AdminController {
     }
 
     // ── Load profiles into assignment ComboBox ────────────────────────────────
-    // ProfileDAO used directly here since this is just loading names for assignment
     private void loadProfilesIntoComboBox() {
         try {
             if (profileComboBox == null) return;

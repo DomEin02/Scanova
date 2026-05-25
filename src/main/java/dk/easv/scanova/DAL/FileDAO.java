@@ -24,9 +24,9 @@ public class FileDAO {
              PreparedStatement ps = conn.prepareStatement(sql)) {
 
             ps.setInt(1, documentId);
-            ps.setInt(2, file.getFileId());       // file_order_id
-            ps.setInt(3, file.getReferenceId());  // file_reference_id
-            ps.setString(4, "");                  // file_path empty until export
+            ps.setInt(2, file.getFileId());      // file_order_id
+            ps.setInt(3, file.getReferenceId()); // file_reference_id
+            ps.setString(4, "");                 // file_path empty until export
             ps.setInt(5, file.getRotation());
             ps.setBoolean(6, barcodeDetected);
             ps.setInt(7, getCurrentUserId());
@@ -50,6 +50,19 @@ public class FileDAO {
         }
         throw new Exception(
                 "Could not insert file for document: " + documentId);
+    }
+
+    // ── Mark barcode detected — updates barcode_detected_at timestamp ─────────
+    public void markBarcodeDetected(int fileId) throws Exception {
+        String sql = "UPDATE files " +
+                "SET barcode_detected = 1, barcode_detected_at = GETDATE() " +
+                "WHERE id = ?";
+
+        try (Connection conn = DBConnector.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, fileId);
+            ps.executeUpdate();
+        }
     }
 
     // ── Update file order after reorder ───────────────────────────────────────
@@ -118,6 +131,7 @@ public class FileDAO {
         return ids;
     }
 
+    // ── Get files with full details for a document ────────────────────────────
     public List<int[]> getFilesByDocumentId(int documentId) throws Exception {
         String sql = "SELECT id, file_reference_id, file_order_id, rotation " +
                 "FROM files " +
@@ -131,10 +145,10 @@ public class FileDAO {
             ResultSet rs = ps.executeQuery();
             while (rs.next()) {
                 files.add(new int[]{
-                        rs.getInt("id"),              // [0] db file id
+                        rs.getInt("id"),               // [0] db file id
                         rs.getInt("file_reference_id"), // [1] api reference id
-                        rs.getInt("file_order_id"),   // [2] order
-                        rs.getInt("rotation")         // [3] rotation
+                        rs.getInt("file_order_id"),    // [2] order
+                        rs.getInt("rotation")          // [3] rotation
                 });
             }
         }

@@ -37,13 +37,13 @@
                 <TableColumn fx:id="colProfileId"
                              text="ID"         prefWidth="50"/>
                 <TableColumn fx:id="colProfileName"
-                             text="Name"       prefWidth="160"/>
+                             text="Name"       prefWidth="150"/>
                 <TableColumn fx:id="colProfileRotation"
                              text="Rotation"   prefWidth="90"/>
                 <TableColumn fx:id="colProfileBrightness"
                              text="Brightness" prefWidth="90"/>
                 <TableColumn fx:id="colProfileClientId"
-                             text="Client ID"  prefWidth="80"/>
+                             text="Client"     prefWidth="120"/>
             </columns>
             <placeholder>
                 <Label text="No profiles found."
@@ -67,7 +67,7 @@
     </VBox>
 
     <!-- RIGHT — Profile form -->
-    <VBox styleClass="panel" prefWidth="290">
+    <VBox styleClass="panel" prefWidth="300">
 
         <VBox spacing="2"
               style="-fx-padding: 16 16 14 16;

@@ -1,6 +1,6 @@
 package dk.easv.scanova.DAL;
 
-import dk.easv.scanova.Model.Client;
+import dk.easv.scanova.BE.Client;
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;

@@ -1,7 +1,7 @@
 package dk.easv.scanova.BLL;
 
 import dk.easv.scanova.DAL.ClientDAO;
-import dk.easv.scanova.Model.Client;
+import dk.easv.scanova.BE.Client;
 import java.util.List;
 
 public class ClientManager {

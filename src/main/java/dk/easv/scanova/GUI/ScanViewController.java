@@ -1,6 +1,10 @@
 package dk.easv.scanova.GUI;
 
-import dk.easv.scanova.BLL.*;
+import dk.easv.scanova.BLL.FileManager;
+import dk.easv.scanova.BLL.LogManager;
+import dk.easv.scanova.BLL.ScanHistoryManager;
+import dk.easv.scanova.BLL.ScanManager;
+import dk.easv.scanova.BLL.SessionManager;
 import dk.easv.scanova.Model.Box;
 import dk.easv.scanova.Model.ScannedFile;
 import dk.easv.scanova.Model.SidebarItem;
@@ -24,9 +28,10 @@ import javafx.stage.Stage;
 import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayInputStream;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
-import javafx.scene.control.ChoiceDialog;
 
 public class ScanViewController {
 
@@ -37,19 +42,24 @@ public class ScanViewController {
     @FXML private ImagePreviewController imagePreviewComponentController;
     @FXML private Button   startScanButton;
     @FXML private Button   scanNextButton;
-    @FXML private Button loadPreviousButton;
+    @FXML private Button   loadPreviousButton;
     @FXML private ComboBox<String> profileComboBox;
     @FXML private TextField boxIdField;
 
     // ── BLL only — never DAL directly ────────────────────────────────────────
-    private final ScanManager  scanManager  = new ScanManager();
-    private final LogManager   logManager   = new LogManager();
-    private final FileManager  fileManager  = new FileManager();
-    private final ScanHistoryManager historyManager = new ScanHistoryManager();
+    private final ScanManager         scanManager    = new ScanManager();
+    private final LogManager          logManager     = new LogManager();
+    private final FileManager         fileManager    = new FileManager();
+    private final ScanHistoryManager  historyManager = new ScanHistoryManager();
 
     private final ObservableList<SidebarItem> sidebarItems =
             FXCollections.observableArrayList();
+
     private Box selectedBox = null;
+
+    // Stores real DB document ids when history is loaded
+    // so reorder can update the pages table correctly
+    private Map<Integer, Integer> loadedDocumentIdMap = new HashMap<>();
 
     // ── Initialize ────────────────────────────────────────────────────────────
     @FXML
@@ -62,7 +72,7 @@ public class ScanViewController {
         statusLabel.setText("Ready · Logged in as: "
                 + SessionManager.getInstance().getCurrentUser().getUsername());
 
-        // Load profiles from DB
+        // Load profiles from DB — only profiles assigned to this user
         try {
             int userId = SessionManager.getInstance().getCurrentUser().getId();
             List<String> profiles = scanManager.getProfilesForCurrentUser(userId);
@@ -110,12 +120,11 @@ public class ScanViewController {
                 }
             };
 
-            // ── Drag detected — only allow dragging files, not headers ────────
+            // ── Drag detected ─────────────────────────────────────────────────
             cell.setOnDragDetected(event -> {
                 if (cell.isEmpty() || cell.getItem() == null) return;
                 if (cell.getItem().isHeader()) return;
 
-                // Don't allow dragging the barcode (first file after header)
                 int index = sidebarItems.indexOf(cell.getItem());
                 if (index > 0 && sidebarItems.get(index - 1).isHeader()) {
                     statusLabel.setText(
@@ -130,7 +139,7 @@ public class ScanViewController {
                 event.consume();
             });
 
-            // ── Drag over — accept and show drop indicator ────────────────────
+            // ── Drag over ─────────────────────────────────────────────────────
             cell.setOnDragOver(event -> {
                 if (event.getGestureSource() == cell) {
                     event.consume();
@@ -144,7 +153,6 @@ public class ScanViewController {
                     event.consume();
                     return;
                 }
-                // Only accept drop onto files, not headers
                 if (!cell.getItem().isHeader()) {
                     event.acceptTransferModes(TransferMode.MOVE);
                     cell.setStyle("-fx-border-color: #2ECC9A;" +
@@ -153,7 +161,7 @@ public class ScanViewController {
                 event.consume();
             });
 
-            // ── Drag exited — remove drop indicator ───────────────────────────
+            // ── Drag exited ───────────────────────────────────────────────────
             cell.setOnDragExited(event -> {
                 if (cell.getItem() != null && cell.getItem().isHeader()) {
                     cell.setStyle(
@@ -164,7 +172,7 @@ public class ScanViewController {
                 event.consume();
             });
 
-            // ── Drag dropped — perform the move ───────────────────────────────
+            // ── Drag dropped ──────────────────────────────────────────────────
             cell.setOnDragDropped(event -> {
                 Dragboard db = event.getDragboard();
                 if (!db.hasString()) {
@@ -184,15 +192,12 @@ public class ScanViewController {
                     return;
                 }
 
-                // Don't drop onto a header
                 if (cell.getItem() != null && cell.getItem().isHeader()) {
                     event.setDropCompleted(false);
                     event.consume();
                     return;
                 }
 
-                // Don't drop right after a header
-                // (that position is reserved for the barcode)
                 if (toIndex > 0
                         && sidebarItems.get(toIndex - 1).isHeader()
                         && fromIndex > toIndex) {
@@ -203,22 +208,19 @@ public class ScanViewController {
                     return;
                 }
 
-                // Perform the move
                 SidebarItem item = sidebarItems.remove(fromIndex);
                 int adjustedTo = fromIndex < toIndex ? toIndex - 1 : toIndex;
                 sidebarItems.add(adjustedTo, item);
                 fileListView.getSelectionModel().select(adjustedTo);
                 fileListView.scrollTo(adjustedTo);
                 statusLabel.setText("Status: File moved — saving order...");
-
-                // Save new order to DB on background thread
                 saveOrderToDB();
 
                 event.setDropCompleted(true);
                 event.consume();
             });
 
-            // ── Drag done — clean up style ────────────────────────────────────
+            // ── Drag done ─────────────────────────────────────────────────────
             cell.setOnDragDone(event -> {
                 if (cell.getItem() != null && cell.getItem().isHeader()) {
                     cell.setStyle(
@@ -232,7 +234,7 @@ public class ScanViewController {
             return cell;
         });
 
-        // Click file in sidebar → show in ImageView
+        // Click file in sidebar → show in ImageView with profile brightness
         fileListView.getSelectionModel()
                 .selectedItemProperty()
                 .addListener((obs, oldItem, newItem) -> {
@@ -262,11 +264,11 @@ public class ScanViewController {
         });
     }
 
+    // ── Load Previous Scan ────────────────────────────────────────────────────
     @FXML
     private void onLoadPreviousScan() {
         int userId = SessionManager.getInstance().getCurrentUser().getId();
 
-        // Load cases for this user
         List<String[]> cases;
         try {
             cases = historyManager.getCasesForUser(userId);
@@ -280,7 +282,6 @@ public class ScanViewController {
             return;
         }
 
-        // Show dialog to pick a case
         ChoiceDialog<String> dialog = new ChoiceDialog<>(
                 formatCase(cases.get(0)),
                 cases.stream()
@@ -291,7 +292,6 @@ public class ScanViewController {
         dialog.setContentText("Session:");
 
         dialog.showAndWait().ifPresent(selected -> {
-            // Find the selected case
             String[] selectedCase = cases.stream()
                     .filter(c -> formatCase(c).equals(selected))
                     .findFirst()
@@ -314,13 +314,17 @@ public class ScanViewController {
 
             loadTask.setOnSucceeded(e -> {
                 if (loadTask.getValue()) {
+                    // Store document id map for reorder saving
+                    loadedDocumentIdMap =
+                            historyManager.getLoadedDocumentIdMap();
                     statusLabel.setText("Status: Loaded "
                             + fileCounter[0] + " files from "
                             + selectedCase[2]);
                     scanNextButton.setDisable(true);
                     startScanButton.setDisable(false);
                 } else {
-                    statusLabel.setText("Status: No files found in this session.");
+                    statusLabel.setText(
+                            "Status: No files found in this session.");
                 }
             });
 
@@ -334,16 +338,15 @@ public class ScanViewController {
         });
     }
 
-    // Format case for display in dialog
+    // ── Format case for dialog ────────────────────────────────────────────────
     private String formatCase(String[] c) {
-        return "Box: " + c[2]        // box label
-                + " | " + c[1]       // title
-                + " | " + c[3];      // status
+        return "Box: " + c[2]  // box label
+                + " | " + c[1] // title
+                + " | " + c[3]; // status
     }
 
     // ── Save current sidebar order to DB ─────────────────────────────────────
     private void saveOrderToDB() {
-        // Capture snapshot before background thread runs
         List<SidebarItem> snapshot = List.copyOf(sidebarItems);
 
         new Thread(() -> {
@@ -354,13 +357,12 @@ public class ScanViewController {
 
                     // Update files table if we have a real DB file id
                     if (file.getDbFileId() != -1) {
-                        fileManager.updateFileOrder(file.getDbFileId(), order);
+                        fileManager.updateFileOrder(
+                                file.getDbFileId(), order);
                     }
 
-                    // Always update pages table using reference id
-                    // We need to find which document this page belongs to
-                    // by looking at the document counter in sidebar
-                    int docId = getDocumentIdForFile(snapshot, item);
+                    // Update pages table
+                    int docId = getRealDocumentId(file.getDocumentId());
                     if (docId != -1) {
                         fileManager.updatePageOrder(
                                 file.getReferenceId(), docId, order);
@@ -374,20 +376,15 @@ public class ScanViewController {
         }).start();
     }
 
-    private int getDocumentIdForFile(List<SidebarItem> snapshot,
-                                     SidebarItem target) {
-        // Walk backwards to find the header above this file
-        int targetIndex = snapshot.indexOf(target);
-        for (int i = targetIndex - 1; i >= 0; i--) {
-            if (snapshot.get(i).isHeader()) {
-                // Header found — but we need the real DB document id
-                // Store it on the header or use documentIdMap from scanManager
-                // For now use the in-memory document number to look up
-                int docNumber = snapshot.get(i).getDocumentId();
-                return scanManager.getRealDocumentId(docNumber);
-            }
-        }
-        return -1;
+    // ── Get real DB document id ───────────────────────────────────────────────
+    // Works for both live scan and loaded history
+    private int getRealDocumentId(int docNumber) {
+        // Try scanManager first (live scan)
+        int fromScan = scanManager.getRealDocumentId(docNumber);
+        if (fromScan != -1) return fromScan;
+
+        // Fall back to loaded history map
+        return loadedDocumentIdMap.getOrDefault(docNumber, -1);
     }
 
     // ── Get profile brightness ────────────────────────────────────────────────
@@ -408,14 +405,8 @@ public class ScanViewController {
             case F2 -> { onStopScan(); event.consume(); }
             case F3 -> { onOpenSlideshow(); event.consume(); }
             case DELETE -> { onDeleteFile(); event.consume(); }
-            case UP -> {
-                onMoveUp();
-                event.consume();
-            }
-            case DOWN -> {
-                onMoveDown();
-                event.consume();
-            }
+            case UP -> { onMoveUp(); event.consume(); }
+            case DOWN -> { onMoveDown(); event.consume(); }
             default -> {}
         }
     }
@@ -457,6 +448,7 @@ public class ScanViewController {
         }
 
         sidebarItems.clear();
+        loadedDocumentIdMap.clear();
         startScanButton.setDisable(true);
         scanNextButton.setDisable(false);
         scanCountLabel.setText("Scans: 0 / " + scanManager.getTotalAvailable());
@@ -565,7 +557,6 @@ public class ScanViewController {
         SidebarItem selected = sidebarItems.get(index);
         if (selected.isHeader()) return;
 
-        // Cannot move above own document header
         SidebarItem above = sidebarItems.get(index - 1);
         if (above.isHeader()) {
             statusLabel.setText(
@@ -593,7 +584,6 @@ public class ScanViewController {
         SidebarItem below = sidebarItems.get(index + 1);
 
         if (below.isHeader()) {
-            // Skip the header — move into next document
             if (index + 2 >= sidebarItems.size()) {
                 statusLabel.setText(
                         "Status: Cannot move below last document header.");

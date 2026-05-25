@@ -3,7 +3,13 @@ package dk.easv.scanova.BLL;
 import com.google.zxing.*;
 import com.google.zxing.client.j2se.BufferedImageLuminanceSource;
 import com.google.zxing.common.HybridBinarizer;
-import dk.easv.scanova.DAL.*;
+import dk.easv.scanova.DAL.BoxDAO;
+import dk.easv.scanova.DAL.CaseDAO;
+import dk.easv.scanova.DAL.DocumentDAO;
+import dk.easv.scanova.DAL.FileDAO;
+import dk.easv.scanova.DAL.PageDAO;
+import dk.easv.scanova.DAL.ProfileDAO;
+import dk.easv.scanova.DAL.ScannerClient;
 import dk.easv.scanova.Model.Box;
 import dk.easv.scanova.Model.Document;
 import dk.easv.scanova.Model.ScannedFile;
@@ -18,16 +24,16 @@ import java.util.Map;
 
 public class ScanManager {
 
-    // DAL dependencies
+    // ── DAL dependencies ──────────────────────────────────────────────────────
     private final ScannerClient scannerClient = new ScannerClient();
     private final BoxDAO        boxDAO        = new BoxDAO();
     private final CaseDAO       caseDAO       = new CaseDAO();
     private final DocumentDAO   documentDAO   = new DocumentDAO();
     private final FileDAO       fileDAO       = new FileDAO();
+    private final PageDAO       pageDAO       = new PageDAO();
     private final ProfileDAO    profileDAO    = new ProfileDAO();
-    private final PageDAO pageDAO = new PageDAO();
 
-    // In-memory state
+    // ── In-memory state ───────────────────────────────────────────────────────
     private final List<Document>        documents     = new ArrayList<>();
     private final Map<Integer, Integer> documentIdMap = new HashMap<>();
 
@@ -40,7 +46,7 @@ public class ScanManager {
     private Box    activeBox;
     private String currentBoxId = "UNKNOWN";
 
-    // Validate box and profile before scanning
+    // ── Validate box and profile before scanning ──────────────────────────────
     public Box validateAndPrepareSession(String boxLabel,
                                          String profileName) throws Exception {
         Box box = boxDAO.getBoxByLabel(boxLabel);
@@ -58,7 +64,7 @@ public class ScanManager {
         return box;
     }
 
-    // Init session with real box
+    // ── Init session with real box ────────────────────────────────────────────
     public void initSession(Box box) throws Exception {
         this.activeBox    = box;
         this.currentBoxId = box.getLabel();
@@ -80,7 +86,7 @@ public class ScanManager {
                 + " | Files: " + totalAvailable);
     }
 
-    // Init session without box — fallback
+    // ── Init session without box — fallback ───────────────────────────────────
     public void initSession() throws Exception {
         totalAvailable   = scannerClient.getTotalCount();
         fileIdCounter    = 0;
@@ -94,7 +100,7 @@ public class ScanManager {
         System.out.println("Session started (no box). Files: " + totalAvailable);
     }
 
-    // Fetch next file from API
+    // ── Fetch next file from API ──────────────────────────────────────────────
     public List<ScannedFile> fetchNext() throws Exception {
         if (!hasMore()) return null;
 
@@ -130,7 +136,6 @@ public class ScanManager {
                 fileIdCounter++;
                 ScannedFile barcodeFile = new ScannedFile(
                         fileIdCounter, referenceCounter, data, documentCounter);
-                // Apply profile rotation automatically
                 barcodeFile.setRotation(profileRotation);
                 getCurrentDocument().addFile(barcodeFile);
                 saveFileToDB(barcodeFile, true);
@@ -144,7 +149,6 @@ public class ScanManager {
                 fileIdCounter++;
                 ScannedFile file = new ScannedFile(
                         fileIdCounter, referenceCounter, data, documentCounter);
-                // Apply profile rotation automatically
                 file.setRotation(profileRotation);
                 getCurrentDocument().addFile(file);
                 saveFileToDB(file, false);
@@ -154,7 +158,7 @@ public class ScanManager {
         return result;
     }
 
-    // Update saveFileToDB() to also save to pages:
+    // ── Save file to both files and pages tables ──────────────────────────────
     private void saveFileToDB(ScannedFile file, boolean barcodeDetected) {
         try {
             int realDocId = documentIdMap.getOrDefault(
@@ -171,7 +175,7 @@ public class ScanManager {
                             + e.getMessage());
                 }
 
-                // Also save to pages table — this is what history uses
+                // Also save to pages table — used by scan history
                 try {
                     pageDAO.insertPageWithDocumentId(file, realDocId);
                 } catch (Exception e) {
@@ -187,12 +191,17 @@ public class ScanManager {
         }
     }
 
-    // Get profiles for current user
+    // ── Get profiles for current user ─────────────────────────────────────────
     public List<String> getProfilesForCurrentUser(int userId) throws Exception {
         return profileDAO.getProfilesForUser(userId);
     }
 
-    // Barcode detection
+    // ── Get real DB document id by in-memory document number ──────────────────
+    public int getRealDocumentId(int docNumber) {
+        return documentIdMap.getOrDefault(docNumber, -1);
+    }
+
+    // ── Barcode detection ─────────────────────────────────────────────────────
     private boolean isBarcode(byte[] data) {
         try {
             BufferedImage image = ImageIO.read(new ByteArrayInputStream(data));
@@ -211,12 +220,7 @@ public class ScanManager {
         }
     }
 
-    // Get real DB document id by in-memory document number
-    public int getRealDocumentId(int docNumber) {
-        return documentIdMap.getOrDefault(docNumber, -1);
-    }
-
-    // Getters
+    // ── Getters ───────────────────────────────────────────────────────────────
     public boolean hasMore() {
         return referenceCounter < totalAvailable;
     }

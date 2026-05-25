@@ -3,7 +3,7 @@ package dk.easv.scanova.GUI;
 import dk.easv.scanova.BLL.LogManager;
 import dk.easv.scanova.BLL.SessionManager;
 import dk.easv.scanova.BLL.UserManager;
-import dk.easv.scanova.Model.User;
+import dk.easv.scanova.BE.User;
 import dk.easv.scanova.SceneManager;
 import javafx.fxml.FXML;
 import javafx.scene.control.*;
@@ -23,7 +23,7 @@ public class LoginController {
             userManager = new UserManager();
             logManager  = new LogManager();
         } catch (Exception e) {
-            errorLabel.setText("Could not connect to database.");
+            errorLabel.setText("Login failed. Please try again or contact your administrator!");
         }
     }
 
@@ -60,7 +60,7 @@ public class LoginController {
             }
 
         } catch (Exception e) {
-            errorLabel.setText("Something went wrong: " + e.getMessage());
+            errorLabel.setText("Login failed. Please try again or contact your administrator!");
         }
     }
 }

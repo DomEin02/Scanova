@@ -5,8 +5,6 @@ import dk.easv.scanova.BLL.ProfileManager;
 import dk.easv.scanova.BLL.SessionManager;
 import dk.easv.scanova.Model.Client;
 import dk.easv.scanova.Model.Profile;
-import javafx.beans.property.SimpleFloatProperty;
-import javafx.beans.property.SimpleIntegerProperty;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
@@ -22,29 +20,29 @@ public class ProfileController {
 
     // ── Profile table ─────────────────────────────────────────────────────────
     @FXML private TableView<Profile>            profileTable;
-    @FXML private TableColumn<Profile, Integer> colProfileId;
     @FXML private TableColumn<Profile, String>  colProfileName;
-    @FXML private TableColumn<Profile, Float>   colProfileRotation;
-    @FXML private TableColumn<Profile, Float>   colProfileBrightness;
-    @FXML private TableColumn<Profile, Integer> colProfileClientId;
+    @FXML private TableColumn<Profile, String>  colProfileRotation;
+    @FXML private TableColumn<Profile, String>  colProfileBrightness;
+    @FXML private TableColumn<Profile, String>  colProfileClientId;
     @FXML private Label                         profileCountBadge;
 
     // ── Profile form ──────────────────────────────────────────────────────────
-    @FXML private Label            profileFormTitle;
-    @FXML private TextField        profileNameField;
-    @FXML private Slider           profileRotationSlider;
-    @FXML private Label            profileRotationValueLabel;
-    @FXML private Slider           profileBrightnessSlider;
-    @FXML private Label            profileBrightnessValueLabel;
-    @FXML private ComboBox<String> profileClientComboBox;
-    @FXML private Label            profileFeedbackLabel;
-    @FXML private Button           profileSaveButton;
+    @FXML private Label             profileFormTitle;
+    @FXML private TextField         profileNameField;
+    @FXML private Slider            profileRotationSlider;
+    @FXML private Label             profileRotationValueLabel;
+    @FXML private Slider            profileBrightnessSlider;
+    @FXML private Label             profileBrightnessValueLabel;
+    @FXML private ComboBox<Client>  profileClientComboBox;
+    @FXML private Label             profileFeedbackLabel;
+    @FXML private Button            profileSaveButton;
 
     // ── BLL only — never DAL directly ────────────────────────────────────────
     private final ProfileManager profileManager = new ProfileManager();
     private final ClientManager  clientManager  = new ClientManager();
 
-    private Profile profileBeingEdited = null;
+    private Profile      profileBeingEdited = null;
+    private List<Client> allClients;
 
     private int getCurrentUserId() {
         if (SessionManager.getInstance().getCurrentUser() == null) return -1;
@@ -53,17 +51,56 @@ public class ProfileController {
 
     @FXML
     public void initialize() {
-        // Wire table columns
-        colProfileId.setCellValueFactory(d ->
-                new SimpleIntegerProperty(d.getValue().getId()).asObject());
+        // Wire table columns — show client name not client id
         colProfileName.setCellValueFactory(d ->
                 new SimpleStringProperty(d.getValue().getName()));
+
         colProfileRotation.setCellValueFactory(d ->
-                new SimpleFloatProperty(d.getValue().getRotation()).asObject());
+                new SimpleStringProperty(
+                        (int) d.getValue().getRotation() + "°"));
+
         colProfileBrightness.setCellValueFactory(d ->
-                new SimpleFloatProperty(d.getValue().getBrightness()).asObject());
-        colProfileClientId.setCellValueFactory(d ->
-                new SimpleIntegerProperty(d.getValue().getClientId()).asObject());
+                new SimpleStringProperty(
+                        String.format("%.1f", d.getValue().getBrightness())));
+
+        // Show client name by looking up from allClients list
+        colProfileClientId.setCellValueFactory(d -> {
+            int clientId = d.getValue().getClientId();
+            if (allClients != null) {
+                return allClients.stream()
+                        .filter(c -> c.getId() == clientId)
+                        .findFirst()
+                        .map(c -> new SimpleStringProperty(c.getName()))
+                        .orElse(new SimpleStringProperty("Unknown"));
+            }
+            return new SimpleStringProperty(String.valueOf(clientId));
+        });
+
+        // Rotation slider — snaps to 5°
+        profileRotationSlider.setMin(-180);
+        profileRotationSlider.setMax(180);
+        profileRotationSlider.setValue(0);
+        profileRotationSlider.setMajorTickUnit(45);
+        profileRotationSlider.setSnapToTicks(false);
+        profileRotationSlider.valueProperty().addListener(
+                (obs, oldVal, newVal) -> {
+                    int snapped = ((int) Math.round(
+                            newVal.doubleValue() / 5)) * 5;
+                    profileRotationSlider.setValue(snapped);
+                    profileRotationValueLabel.setText(snapped + "°");
+                });
+
+        // Brightness slider
+        profileBrightnessSlider.setMin(0.1);
+        profileBrightnessSlider.setMax(3.0);
+        profileBrightnessSlider.setValue(1.0);
+        profileBrightnessSlider.valueProperty().addListener(
+                (obs, oldVal, newVal) -> {
+                    double rounded =
+                            Math.round(newVal.doubleValue() * 10.0) / 10.0;
+                    profileBrightnessValueLabel.setText(
+                            String.valueOf(rounded));
+                });
 
         // Inline Edit + Delete buttons per row
         TableColumn<Profile, Void> actionsCol = new TableColumn<>("Actions");
@@ -84,6 +121,16 @@ public class ProfileController {
                     profileNameField.setText(p.getName());
                     profileRotationSlider.setValue(p.getRotation());
                     profileBrightnessSlider.setValue(p.getBrightness());
+
+                    // Select the correct client in dropdown
+                    if (allClients != null) {
+                        allClients.stream()
+                                .filter(c -> c.getId() == p.getClientId())
+                                .findFirst()
+                                .ifPresent(c ->
+                                        profileClientComboBox.setValue(c));
+                    }
+
                     profileFormTitle.setText("Edit profile");
                     profileSaveButton.setText("Update profile");
                     showFeedback("Editing: " + p.getName(), true);
@@ -119,30 +166,6 @@ public class ProfileController {
         });
         profileTable.getColumns().add(actionsCol);
 
-        // Rotation slider
-        profileRotationSlider.setMin(-180);
-        profileRotationSlider.setMax(180);
-        profileRotationSlider.setValue(0);
-        profileRotationSlider.valueProperty().addListener(
-                (obs, oldVal, newVal) -> {
-                    int snapped = ((int) Math.round(
-                            newVal.doubleValue() / 5)) * 5;
-                    profileRotationSlider.setValue(snapped);
-                    profileRotationValueLabel.setText(snapped + "°");
-                });
-
-        // Brightness slider
-        profileBrightnessSlider.setMin(0.1);
-        profileBrightnessSlider.setMax(3.0);
-        profileBrightnessSlider.setValue(1.0);
-        profileBrightnessSlider.valueProperty().addListener(
-                (obs, oldVal, newVal) -> {
-                    double rounded =
-                            Math.round(newVal.doubleValue() * 10.0) / 10.0;
-                    profileBrightnessValueLabel.setText(
-                            String.valueOf(rounded));
-                });
-
         loadClients();
         loadProfiles();
     }
@@ -150,12 +173,9 @@ public class ProfileController {
     // ── Load clients into dropdown ────────────────────────────────────────────
     private void loadClients() {
         try {
-            List<Client> clients = clientManager.getAllClients();
+            allClients = clientManager.getAllClients();
             profileClientComboBox.setItems(
-                    FXCollections.observableArrayList(
-                            clients.stream()
-                                    .map(Client::getName)
-                                    .collect(Collectors.toList())));
+                    FXCollections.observableArrayList(allClients));
         } catch (Exception e) {
             showFeedback("Could not load clients: " + e.getMessage(), false);
         }
@@ -181,19 +201,13 @@ public class ProfileController {
         String name        = profileNameField.getText().trim();
         float  rotation    = (float) profileRotationSlider.getValue();
         float  brightness  = (float) profileBrightnessSlider.getValue();
-        String clientName  = profileClientComboBox.getValue();
+        Client selectedClient = profileClientComboBox.getValue();
 
         try {
-            if (clientName == null)
+            if (selectedClient == null)
                 throw new Exception("Please select a client.");
 
-            // Get client id by name
-            List<Client> clients = clientManager.getAllClients();
-            int clientId = clients.stream()
-                    .filter(c -> c.getName().equals(clientName))
-                    .findFirst()
-                    .orElseThrow(() -> new Exception("Client not found."))
-                    .getId();
+            int clientId = selectedClient.getId();
 
             if (profileBeingEdited == null) {
                 profileManager.createProfile(
@@ -224,6 +238,15 @@ public class ProfileController {
         profileNameField.setText(selected.getName());
         profileRotationSlider.setValue(selected.getRotation());
         profileBrightnessSlider.setValue(selected.getBrightness());
+
+        // Select correct client in dropdown
+        if (allClients != null) {
+            allClients.stream()
+                    .filter(c -> c.getId() == selected.getClientId())
+                    .findFirst()
+                    .ifPresent(c -> profileClientComboBox.setValue(c));
+        }
+
         profileFormTitle.setText("Edit profile");
         profileSaveButton.setText("Update profile");
         showFeedback("Editing: " + selected.getName(), true);
@@ -270,6 +293,7 @@ public class ProfileController {
 
     // ── Feedback ──────────────────────────────────────────────────────────────
     private void showFeedback(String message, boolean success) {
+        if (profileFeedbackLabel == null) return;
         profileFeedbackLabel.setText(message);
         profileFeedbackLabel.setTextFill(
                 success ? Color.web("#2ECC9A") : Color.web("#E53E3E"));
