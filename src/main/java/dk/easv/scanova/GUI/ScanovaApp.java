@@ -11,7 +11,6 @@ public class ScanovaApp extends Application {
         SceneManager.setStage(stage);
         SceneManager.load("loginView.fxml");
         stage.setTitle("Scanova");
-        stage.setResizable(false); // keep login screen fixed size
         stage.show();
     }
 

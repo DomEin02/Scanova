@@ -25,6 +25,11 @@
                 snapToTicks="false"
                 minorTickCount="4"
                 prefWidth="300"/>
+
+        <TextField fx:id="rotationField"
+                   prefWidth="70"
+                   promptText="deg"/>
+
     </ToolBar>
 
     <StackPane fx:id="imageContainer"

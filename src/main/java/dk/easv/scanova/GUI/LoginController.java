@@ -1,5 +1,6 @@
 package dk.easv.scanova.GUI;
 
+import dk.easv.scanova.BLL.LogManager;
 import dk.easv.scanova.BLL.SessionManager;
 import dk.easv.scanova.BLL.UserManager;
 import dk.easv.scanova.Model.User;
@@ -9,20 +10,12 @@ import javafx.scene.control.*;
 
 public class LoginController {
 
-    @FXML private TextField usernameField;
+    @FXML private TextField    usernameField;
     @FXML private PasswordField passwordField;
-    @FXML private Label errorLabel;
+    @FXML private Label         errorLabel;
 
-    private UserManager userManager;
-
-    @FXML
-    public void initialize() {
-        try {
-            userManager = new UserManager();
-        } catch (Exception e) {
-            errorLabel.setText("Could not connect to database.");
-        }
-    }
+    private final UserManager userManager = new UserManager();
+    private final LogManager  logManager  = new LogManager();
 
     @FXML
     private void handleLogin() {
@@ -35,17 +28,20 @@ public class LoginController {
             return;
         }
 
-        // Real DB login
         try {
             User user = userManager.login(username, password);
 
             if (user == null) {
                 errorLabel.setText("Incorrect username or password.");
                 passwordField.clear();
+                logManager.log("LOGIN_FAILED", -1,
+                        "Failed login attempt: " + username);
                 return;
             }
 
             SessionManager.getInstance().setCurrentUser(user);
+            logManager.log("LOGIN_SUCCESS", user.getId(),
+                    "Login: " + user.getUsername());
 
             if (user.isAdmin()) {
                 SceneManager.load("adminView.fxml");
@@ -54,7 +50,8 @@ public class LoginController {
             }
 
         } catch (Exception e) {
-            errorLabel.setText("Something went wrong: " + e.getMessage());
+            errorLabel.setText(
+                    "Login failed. Please try again or contact your administrator.");
         }
     }
 }

@@ -2,6 +2,7 @@ package dk.easv.scanova.BLL;
 
 import dk.easv.scanova.DAL.ProfileDAO;
 import dk.easv.scanova.Model.Profile;
+
 import java.util.List;
 
 public class ProfileManager {
@@ -12,24 +13,23 @@ public class ProfileManager {
         return profileDAO.getAllProfiles();
     }
 
-    public void createProfile(String name, float rotation, float brightness, int clientId) throws Exception {
-
+    public void createProfile(String name, float rotation,
+                              float brightness, int clientId) throws Exception {
         validateName(name);
         validateRotation(rotation);
         validateBrightness(brightness);
         validateClient(clientId);
-
-       profileDAO.createProfile(new Profile(name, rotation, brightness, clientId));
+        profileDAO.createProfile(new Profile(name, rotation, brightness, clientId));
     }
 
-    public void updateProfile(int id, String name, float rotation, float brightness, int clientId) throws Exception {
-
+    public void updateProfile(int id, String name, float rotation,
+                              float brightness, int clientId) throws Exception {
         validateName(name);
         validateRotation(rotation);
         validateBrightness(brightness);
         validateClient(clientId);
-
-        profileDAO.updateProfile(new Profile(id, name, rotation, brightness, clientId, true));
+        profileDAO.updateProfile(
+                new Profile(id, name, rotation, brightness, clientId, true));
     }
 
     public void deleteProfile(int id) throws Exception {

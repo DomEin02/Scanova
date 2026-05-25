@@ -1,0 +1,141 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.geometry.Insets?>
+
+<VBox spacing="12"
+      xmlns="http://javafx.com/javafx/21"
+      xmlns:fx="http://javafx.com/fxml/1"
+      fx:controller="dk.easv.scanova.GUI.LogController">
+
+    <!-- Filter panel -->
+    <VBox styleClass="panel" spacing="12">
+        <padding><Insets top="14" right="16" bottom="14" left="16"/></padding>
+
+        <Label text="Filter Logs" styleClass="panel-title"/>
+
+        <!-- Type filters -->
+        <HBox spacing="16" alignment="CENTER_LEFT">
+            <Label text="Type:"
+                   style="-fx-text-fill: #4A5568;
+                          -fx-font-weight: bold;
+                          -fx-font-size: 12px;"/>
+
+            <!-- Login — blue tag + checkbox -->
+            <HBox spacing="6" alignment="CENTER_LEFT"
+                  style="-fx-background-color: rgba(66,153,225,0.15);
+                         -fx-background-radius: 4;
+                         -fx-padding: 4 10 4 10;">
+                <CheckBox fx:id="filterLogin"/>
+                <Label text="Login"
+                       style="-fx-text-fill: #4299E1;
+                              -fx-font-weight: bold;
+                              -fx-font-size: 12px;"/>
+            </HBox>
+
+            <!-- Scanning — green tag + checkbox -->
+            <HBox spacing="6" alignment="CENTER_LEFT"
+                  style="-fx-background-color: rgba(46,204,154,0.15);
+                         -fx-background-radius: 4;
+                         -fx-padding: 4 10 4 10;">
+                <CheckBox fx:id="filterScanning"/>
+                <Label text="Scanning"
+                       style="-fx-text-fill: #2ECC9A;
+                              -fx-font-weight: bold;
+                              -fx-font-size: 12px;"/>
+            </HBox>
+
+            <!-- Management — orange tag + checkbox -->
+            <HBox spacing="6" alignment="CENTER_LEFT"
+                  style="-fx-background-color: rgba(246,173,85,0.15);
+                         -fx-background-radius: 4;
+                         -fx-padding: 4 10 4 10;">
+                <CheckBox fx:id="filterManagement"/>
+                <Label text="Management"
+                       style="-fx-text-fill: #F6AD55;
+                              -fx-font-weight: bold;
+                              -fx-font-size: 12px;"/>
+            </HBox>
+
+            <!-- Error — red tag + checkbox -->
+            <HBox spacing="6" alignment="CENTER_LEFT"
+                  style="-fx-background-color: rgba(252,129,129,0.15);
+                         -fx-background-radius: 4;
+                         -fx-padding: 4 10 4 10;">
+                <CheckBox fx:id="filterError"/>
+                <Label text="Error"
+                       style="-fx-text-fill: #FC8181;
+                              -fx-font-weight: bold;
+                              -fx-font-size: 12px;"/>
+            </HBox>
+
+            <!-- Other — purple tag + checkbox -->
+            <HBox spacing="6" alignment="CENTER_LEFT"
+                  style="-fx-background-color: rgba(159,122,234,0.15);
+                         -fx-background-radius: 4;
+                         -fx-padding: 4 10 4 10;">
+                <CheckBox fx:id="filterOther"/>
+                <Label text="Other"
+                       style="-fx-text-fill: #9F7AEA;
+                              -fx-font-weight: bold;
+                              -fx-font-size: 12px;"/>
+            </HBox>
+
+        </HBox>
+
+        <!-- Date range + buttons -->
+        <HBox spacing="12" alignment="CENTER_LEFT">
+            <Label text="From:"
+                   style="-fx-text-fill: #4A5568; -fx-font-weight: bold;
+                          -fx-font-size: 12px;"/>
+            <DatePicker fx:id="fromDatePicker" prefWidth="150"/>
+            <Label text="To:"
+                   style="-fx-text-fill: #4A5568; -fx-font-weight: bold;
+                          -fx-font-size: 12px;"/>
+            <DatePicker fx:id="toDatePicker" prefWidth="150"/>
+            <Button text="Apply Filter"
+                    styleClass="btn-primary"
+                    onAction="#handleApplyFilter"
+                    style="-fx-padding: 6 14; -fx-font-size: 12px;"/>
+            <Button text="Clear"
+                    styleClass="btn-secondary"
+                    onAction="#handleClearFilter"
+                    style="-fx-padding: 6 14; -fx-font-size: 12px;"/>
+            <Label fx:id="logCountLabel"
+                   style="-fx-text-fill: #718096; -fx-font-size: 12px;"/>
+        </HBox>
+
+    </VBox>
+
+    <!-- Log table -->
+    <VBox styleClass="panel" VBox.vgrow="ALWAYS">
+        <TableView fx:id="logTable"
+                   VBox.vgrow="ALWAYS"
+                   prefHeight="500"
+                   style="-fx-border-color: transparent;
+                          -fx-background-color: transparent;">
+            <columns>
+                <TableColumn fx:id="colCategory"
+                             text="Category"
+                             prefWidth="110"/>
+                <TableColumn fx:id="colAction"
+                             text="Action"
+                             prefWidth="160"/>
+                <TableColumn fx:id="colUsername"
+                             text="User"
+                             prefWidth="100"/>
+                <TableColumn fx:id="colDetails"
+                             text="Details"
+                             prefWidth="350"/>
+                <TableColumn fx:id="colTimestamp"
+                             text="Timestamp"
+                             prefWidth="160"/>
+            </columns>
+            <placeholder>
+                <Label text="No log entries found."
+                       style="-fx-text-fill: #A0AEC0; -fx-font-size: 13px;"/>
+            </placeholder>
+        </TableView>
+    </VBox>
+
+</VBox>
