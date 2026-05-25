@@ -44,7 +44,7 @@ public class LogController {
                         LogManager.getCategory(data.getValue()[0])));
 
         // Color code the category cell
-        colCategory.setCellFactory(col -> new TableCell<>() {
+        colCategory.setCellFactory(col -> new TableCell<String[], String>() {
             @Override
             protected void updateItem(String item, boolean empty) {
                 super.updateItem(item, empty);
@@ -53,13 +53,13 @@ public class LogController {
                     setStyle("");
                 } else {
                     setText(item);
-                    setStyle(switch (item) {
-                        case "LOGIN"      -> "-fx-text-fill: #63B3ED; -fx-font-weight: bold;";
-                        case "SCANNING"   -> "-fx-text-fill: #2ECC9A; -fx-font-weight: bold;";
-                        case "MANAGEMENT" -> "-fx-text-fill: #F6AD55; -fx-font-weight: bold;";
-                        case "ERROR"      -> "-fx-text-fill: #FC8181; -fx-font-weight: bold;";
-                        default           -> "-fx-text-fill: #A0AEC0;";
-                    });
+                    switch (item) {
+                        case "LOGIN"      -> setStyle("-fx-text-fill: #4299E1; -fx-font-weight: bold;");
+                        case "SCANNING"   -> setStyle("-fx-text-fill: #2ECC9A; -fx-font-weight: bold;");
+                        case "MANAGEMENT" -> setStyle("-fx-text-fill: #F6AD55; -fx-font-weight: bold;");
+                        case "ERROR"      -> setStyle("-fx-text-fill: #FC8181; -fx-font-weight: bold;");
+                        default           -> setStyle("-fx-text-fill: #9F7AEA;");
+                    }
                 }
             }
         });

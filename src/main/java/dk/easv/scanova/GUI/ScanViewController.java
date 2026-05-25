@@ -1,8 +1,7 @@
 package dk.easv.scanova.GUI;
 
-import dk.easv.scanova.BLL.ScanManager;
-import dk.easv.scanova.BLL.SessionManager;
-import dk.easv.scanova.DAL.PageDAO;
+import dk.easv.scanova.BLL.*;
+import dk.easv.scanova.Model.Box;
 import dk.easv.scanova.Model.ScannedFile;
 import dk.easv.scanova.Model.SidebarItem;
 import dk.easv.scanova.SceneManager;
@@ -14,14 +13,12 @@ import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
-import javafx.scene.control.Button;
-import javafx.scene.control.ComboBox;
-import javafx.scene.control.Label;
-import javafx.scene.control.ListCell;
-import javafx.scene.control.ListView;
-import javafx.scene.control.TextField;
+import javafx.scene.control.*;
 import javafx.scene.image.Image;
+import javafx.scene.input.ClipboardContent;
+import javafx.scene.input.Dragboard;
 import javafx.scene.input.KeyEvent;
+import javafx.scene.input.TransferMode;
 import javafx.embed.swing.SwingFXUtils;
 import javafx.stage.Stage;
 import javax.imageio.ImageIO;
@@ -29,24 +26,32 @@ import java.awt.image.BufferedImage;
 import java.io.ByteArrayInputStream;
 import java.util.List;
 import java.util.stream.Collectors;
+import javafx.scene.control.ChoiceDialog;
 
 public class ScanViewController {
 
-    @FXML private Label scanCountLabel;
-    @FXML private Label statusLabel;
-    @FXML private Label documentCountLabel;
+    @FXML private Label    scanCountLabel;
+    @FXML private Label    statusLabel;
+    @FXML private Label    documentCountLabel;
     @FXML private ListView<SidebarItem> fileListView;
     @FXML private ImagePreviewController imagePreviewComponentController;
-    @FXML private Button startScanButton;
+    @FXML private Button   startScanButton;
+    @FXML private Button   scanNextButton;
+    @FXML private Button loadPreviousButton;
     @FXML private ComboBox<String> profileComboBox;
     @FXML private TextField boxIdField;
 
-    private final ObservableList<SidebarItem> sidebarItems = FXCollections.observableArrayList();
-    private final ScanManager scanManager = new ScanManager();
-    private final PageDAO pageDAO = new PageDAO();
-    private volatile boolean scanning = false;
+    // ── BLL only — never DAL directly ────────────────────────────────────────
+    private final ScanManager  scanManager  = new ScanManager();
+    private final LogManager   logManager   = new LogManager();
+    private final FileManager  fileManager  = new FileManager();
+    private final ScanHistoryManager historyManager = new ScanHistoryManager();
 
-    // Initialize
+    private final ObservableList<SidebarItem> sidebarItems =
+            FXCollections.observableArrayList();
+    private Box selectedBox = null;
+
+    // ── Initialize ────────────────────────────────────────────────────────────
     @FXML
     public void initialize() {
         if (!SessionManager.getInstance().isLoggedIn()) {
@@ -57,33 +62,174 @@ public class ScanViewController {
         statusLabel.setText("Ready · Logged in as: "
                 + SessionManager.getInstance().getCurrentUser().getUsername());
 
-        // Hardcoded profiles — Sprint 3 loads from DB
-        profileComboBox.getItems().addAll("Default", "WebLager_Standard");
+        // Load profiles from DB
+        try {
+            int userId = SessionManager.getInstance().getCurrentUser().getId();
+            List<String> profiles = scanManager.getProfilesForCurrentUser(userId);
+            profileComboBox.getItems().addAll(profiles);
+            if (!profiles.isEmpty()) profileComboBox.setValue(profiles.get(0));
+            else {
+                statusLabel.setText(
+                        "Warning: No profiles assigned. Contact an administrator.");
+                startScanButton.setDisable(true);
+            }
+        } catch (Exception e) {
+            statusLabel.setText("Could not load profiles: " + e.getMessage());
+        }
 
-        // Disable start scan until both profile and box are selected
+        // Disable buttons until ready
         startScanButton.setDisable(true);
+        scanNextButton.setDisable(true);
+
         profileComboBox.valueProperty().addListener(
                 (obs, old, val) -> checkCanStartScan());
         boxIdField.textProperty().addListener(
                 (obs, old, val) -> checkCanStartScan());
 
-        // Setup sidebar
+        // Setup sidebar with drag and drop
         fileListView.setItems(sidebarItems);
-        fileListView.setCellFactory(lv -> new ListCell<>() {
-            @Override
-            protected void updateItem(SidebarItem item, boolean empty) {
-                super.updateItem(item, empty);
-                if (empty || item == null) {
-                    setText(null);
-                    setStyle("");
-                } else if (item.isHeader()) {
-                    setText("📁  Document " + item.getDocumentId());
-                    setStyle("-fx-font-weight: bold; -fx-text-fill: #1A2E4A;");
-                } else {
-                    setText("    File #" + item.getFile().getFileId());
-                    setStyle("");
+        fileListView.setCellFactory(lv -> {
+
+            ListCell<SidebarItem> cell = new ListCell<>() {
+                @Override
+                protected void updateItem(SidebarItem item, boolean empty) {
+                    super.updateItem(item, empty);
+                    if (empty || item == null) {
+                        setText(null);
+                        setStyle("");
+                    } else if (item.isHeader()) {
+                        setText("📁  Document " + item.getDocumentId());
+                        setStyle("-fx-font-weight: bold;" +
+                                "-fx-text-fill: #1A2E4A;");
+                    } else {
+                        setText("    File #" + item.getFile().getFileId()
+                                + " (ref: " + item.getFile().getReferenceId()
+                                + ", rot: " + item.getFile().getRotation() + "°)");
+                        setStyle("");
+                    }
                 }
-            }
+            };
+
+            // ── Drag detected — only allow dragging files, not headers ────────
+            cell.setOnDragDetected(event -> {
+                if (cell.isEmpty() || cell.getItem() == null) return;
+                if (cell.getItem().isHeader()) return;
+
+                // Don't allow dragging the barcode (first file after header)
+                int index = sidebarItems.indexOf(cell.getItem());
+                if (index > 0 && sidebarItems.get(index - 1).isHeader()) {
+                    statusLabel.setText(
+                            "Status: Cannot move the first file of a document.");
+                    return;
+                }
+
+                Dragboard db = cell.startDragAndDrop(TransferMode.MOVE);
+                ClipboardContent content = new ClipboardContent();
+                content.putString(String.valueOf(index));
+                db.setContent(content);
+                event.consume();
+            });
+
+            // ── Drag over — accept and show drop indicator ────────────────────
+            cell.setOnDragOver(event -> {
+                if (event.getGestureSource() == cell) {
+                    event.consume();
+                    return;
+                }
+                if (!event.getDragboard().hasString()) {
+                    event.consume();
+                    return;
+                }
+                if (cell.isEmpty() || cell.getItem() == null) {
+                    event.consume();
+                    return;
+                }
+                // Only accept drop onto files, not headers
+                if (!cell.getItem().isHeader()) {
+                    event.acceptTransferModes(TransferMode.MOVE);
+                    cell.setStyle("-fx-border-color: #2ECC9A;" +
+                            "-fx-border-width: 0 0 2 0;");
+                }
+                event.consume();
+            });
+
+            // ── Drag exited — remove drop indicator ───────────────────────────
+            cell.setOnDragExited(event -> {
+                if (cell.getItem() != null && cell.getItem().isHeader()) {
+                    cell.setStyle(
+                            "-fx-font-weight: bold; -fx-text-fill: #1A2E4A;");
+                } else {
+                    cell.setStyle("");
+                }
+                event.consume();
+            });
+
+            // ── Drag dropped — perform the move ───────────────────────────────
+            cell.setOnDragDropped(event -> {
+                Dragboard db = event.getDragboard();
+                if (!db.hasString()) {
+                    event.setDropCompleted(false);
+                    event.consume();
+                    return;
+                }
+
+                int fromIndex = Integer.parseInt(db.getString());
+                int toIndex   = cell.isEmpty()
+                        ? sidebarItems.size() - 1
+                        : sidebarItems.indexOf(cell.getItem());
+
+                if (fromIndex == toIndex) {
+                    event.setDropCompleted(false);
+                    event.consume();
+                    return;
+                }
+
+                // Don't drop onto a header
+                if (cell.getItem() != null && cell.getItem().isHeader()) {
+                    event.setDropCompleted(false);
+                    event.consume();
+                    return;
+                }
+
+                // Don't drop right after a header
+                // (that position is reserved for the barcode)
+                if (toIndex > 0
+                        && sidebarItems.get(toIndex - 1).isHeader()
+                        && fromIndex > toIndex) {
+                    statusLabel.setText(
+                            "Status: Cannot move a file before the barcode.");
+                    event.setDropCompleted(false);
+                    event.consume();
+                    return;
+                }
+
+                // Perform the move
+                SidebarItem item = sidebarItems.remove(fromIndex);
+                int adjustedTo = fromIndex < toIndex ? toIndex - 1 : toIndex;
+                sidebarItems.add(adjustedTo, item);
+                fileListView.getSelectionModel().select(adjustedTo);
+                fileListView.scrollTo(adjustedTo);
+                statusLabel.setText("Status: File moved — saving order...");
+
+                // Save new order to DB on background thread
+                saveOrderToDB();
+
+                event.setDropCompleted(true);
+                event.consume();
+            });
+
+            // ── Drag done — clean up style ────────────────────────────────────
+            cell.setOnDragDone(event -> {
+                if (cell.getItem() != null && cell.getItem().isHeader()) {
+                    cell.setStyle(
+                            "-fx-font-weight: bold; -fx-text-fill: #1A2E4A;");
+                } else {
+                    cell.setStyle("");
+                }
+                event.consume();
+            });
+
+            return cell;
         });
 
         // Click file in sidebar → show in ImageView
@@ -98,7 +244,8 @@ public class ScanViewController {
                         if (buffered != null) {
                             imagePreviewComponentController.setImage(
                                     SwingFXUtils.toFXImage(buffered, null),
-                                    newItem.getFile());
+                                    newItem.getFile(),
+                                    getProfileBrightness());
                         }
                     } catch (Exception e) {
                         statusLabel.setText("Could not load image — "
@@ -106,9 +253,7 @@ public class ScanViewController {
                     }
                 });
 
-        // ── Register keyboard shortcuts reliably via sceneProperty ────────────
-        // sceneProperty fires exactly when the node is attached to a scene
-        // — more reliable than Platform.runLater()
+        // Register keyboard shortcuts
         fileListView.sceneProperty().addListener((obs, oldScene, newScene) -> {
             if (newScene != null) {
                 newScene.addEventFilter(
@@ -117,85 +262,359 @@ public class ScanViewController {
         });
     }
 
-    // Keyboard shortcuts
+    @FXML
+    private void onLoadPreviousScan() {
+        int userId = SessionManager.getInstance().getCurrentUser().getId();
+
+        // Load cases for this user
+        List<String[]> cases;
+        try {
+            cases = historyManager.getCasesForUser(userId);
+        } catch (Exception e) {
+            statusLabel.setText("Could not load history: " + e.getMessage());
+            return;
+        }
+
+        if (cases.isEmpty()) {
+            statusLabel.setText("Status: No previous scan sessions found.");
+            return;
+        }
+
+        // Show dialog to pick a case
+        ChoiceDialog<String> dialog = new ChoiceDialog<>(
+                formatCase(cases.get(0)),
+                cases.stream()
+                        .map(this::formatCase)
+                        .collect(Collectors.toList()));
+        dialog.setTitle("Load Previous Scan");
+        dialog.setHeaderText("Select a previous scan session to load:");
+        dialog.setContentText("Session:");
+
+        dialog.showAndWait().ifPresent(selected -> {
+            // Find the selected case
+            String[] selectedCase = cases.stream()
+                    .filter(c -> formatCase(c).equals(selected))
+                    .findFirst()
+                    .orElse(null);
+
+            if (selectedCase == null) return;
+
+            int caseId = Integer.parseInt(selectedCase[0]);
+            statusLabel.setText("Status: Loading scan session...");
+
+            int[] fileCounter = {0};
+
+            Task<Boolean> loadTask = new Task<>() {
+                @Override
+                protected Boolean call() throws Exception {
+                    return historyManager.loadCaseIntoSidebar(
+                            caseId, sidebarItems, fileCounter);
+                }
+            };
+
+            loadTask.setOnSucceeded(e -> {
+                if (loadTask.getValue()) {
+                    statusLabel.setText("Status: Loaded "
+                            + fileCounter[0] + " files from "
+                            + selectedCase[2]);
+                    scanNextButton.setDisable(true);
+                    startScanButton.setDisable(false);
+                } else {
+                    statusLabel.setText("Status: No files found in this session.");
+                }
+            });
+
+            loadTask.setOnFailed(e ->
+                    statusLabel.setText("Could not load session: "
+                            + loadTask.getException().getMessage()));
+
+            Thread thread = new Thread(loadTask);
+            thread.setDaemon(true);
+            thread.start();
+        });
+    }
+
+    // Format case for display in dialog
+    private String formatCase(String[] c) {
+        return "Box: " + c[2]        // box label
+                + " | " + c[1]       // title
+                + " | " + c[3];      // status
+    }
+
+    // ── Save current sidebar order to DB ─────────────────────────────────────
+    private void saveOrderToDB() {
+        // Capture snapshot before background thread runs
+        List<SidebarItem> snapshot = List.copyOf(sidebarItems);
+
+        new Thread(() -> {
+            int order = 1;
+            for (SidebarItem item : snapshot) {
+                if (!item.isHeader()) {
+                    ScannedFile file = item.getFile();
+
+                    // Update files table if we have a real DB file id
+                    if (file.getDbFileId() != -1) {
+                        fileManager.updateFileOrder(file.getDbFileId(), order);
+                    }
+
+                    // Always update pages table using reference id
+                    // We need to find which document this page belongs to
+                    // by looking at the document counter in sidebar
+                    int docId = getDocumentIdForFile(snapshot, item);
+                    if (docId != -1) {
+                        fileManager.updatePageOrder(
+                                file.getReferenceId(), docId, order);
+                    }
+
+                    order++;
+                }
+            }
+            Platform.runLater(() ->
+                    statusLabel.setText("Status: Order saved."));
+        }).start();
+    }
+
+    private int getDocumentIdForFile(List<SidebarItem> snapshot,
+                                     SidebarItem target) {
+        // Walk backwards to find the header above this file
+        int targetIndex = snapshot.indexOf(target);
+        for (int i = targetIndex - 1; i >= 0; i--) {
+            if (snapshot.get(i).isHeader()) {
+                // Header found — but we need the real DB document id
+                // Store it on the header or use documentIdMap from scanManager
+                // For now use the in-memory document number to look up
+                int docNumber = snapshot.get(i).getDocumentId();
+                return scanManager.getRealDocumentId(docNumber);
+            }
+        }
+        return -1;
+    }
+
+    // ── Get profile brightness ────────────────────────────────────────────────
+    private double getProfileBrightness() {
+        return (scanManager.getActiveBox() != null)
+                ? scanManager.getActiveBox().getBrightness()
+                : 1.0;
+    }
+
+    // ── Keyboard shortcuts ────────────────────────────────────────────────────
     private void handleKeyPress(KeyEvent event) {
         switch (event.getCode()) {
             case F1 -> {
-                // Only start if profile and box are selected
-                if (!startScanButton.isDisabled()) onStartScan();
+                if (!scanNextButton.isDisabled()) onScanNext();
+                else if (!startScanButton.isDisabled()) onStartScan();
                 event.consume();
             }
-            case F2 -> {
-                onStopScan();
-                event.consume();
-            }
-            case F3 -> {
-                onOpenSlideshow();
-                event.consume();
-            }
-            case F4 -> {
-                statusLabel.setText("Status: Export — coming soon");
-                event.consume();
-            }
-            case DELETE -> {
-                onDeleteFile();
-                event.consume();
-            }
+            case F2 -> { onStopScan(); event.consume(); }
+            case F3 -> { onOpenSlideshow(); event.consume(); }
+            case DELETE -> { onDeleteFile(); event.consume(); }
             case UP -> {
-                int i = fileListView.getSelectionModel().getSelectedIndex();
-                if (i > 0) {
-                    fileListView.getSelectionModel().select(i - 1);
-                    fileListView.scrollTo(i - 1);
-                }
+                onMoveUp();
                 event.consume();
             }
             case DOWN -> {
-                int i = fileListView.getSelectionModel().getSelectedIndex();
-                if (i < sidebarItems.size() - 1) {
-                    fileListView.getSelectionModel().select(i + 1);
-                    fileListView.scrollTo(i + 1);
-                }
+                onMoveDown();
                 event.consume();
             }
             default -> {}
         }
     }
 
-    // Check if scan can start
+    // ── Check if scan can start ───────────────────────────────────────────────
     private void checkCanStartScan() {
         boolean hasProfile = profileComboBox.getValue() != null;
-        boolean hasBox = boxIdField.getText() != null
+        boolean hasBox     = boxIdField.getText() != null
                 && !boxIdField.getText().isBlank();
         startScanButton.setDisable(!(hasProfile && hasBox));
     }
 
-    // Check if document header already exists
+    // ── Check if document header already exists ───────────────────────────────
     private boolean headerExists(int documentId) {
         return sidebarItems.stream()
-                .anyMatch(i -> i.isHeader() && i.getDocumentId() == documentId);
+                .anyMatch(i -> i.isHeader()
+                        && i.getDocumentId() == documentId);
     }
 
-    // Move Up
+    // ── Start Session ─────────────────────────────────────────────────────────
+    @FXML
+    private void onStartScan() {
+        String boxLabel    = boxIdField.getText().trim();
+        String profileName = profileComboBox.getValue();
+
+        try {
+            selectedBox = scanManager.validateAndPrepareSession(
+                    boxLabel, profileName);
+        } catch (Exception e) {
+            statusLabel.setText("Error: " + e.getMessage());
+            return;
+        }
+
+        try {
+            scanManager.initSession(selectedBox);
+        } catch (Exception e) {
+            statusLabel.setText("Error starting session: " + e.getMessage());
+            return;
+        }
+
+        sidebarItems.clear();
+        startScanButton.setDisable(true);
+        scanNextButton.setDisable(false);
+        scanCountLabel.setText("Scans: 0 / " + scanManager.getTotalAvailable());
+        statusLabel.setText("Status: Session started"
+                + " | Profile: " + selectedBox.getProfileName()
+                + " | Auto-rotation: " + (int) selectedBox.getRotation() + "°"
+                + " | Brightness: " + selectedBox.getBrightness()
+                + " — press Scan Next or F1");
+    }
+
+    // ── Scan Next ─────────────────────────────────────────────────────────────
+    @FXML
+    private void onScanNext() {
+        if (!scanManager.hasMore()) {
+            scanNextButton.setDisable(true);
+            startScanButton.setDisable(false);
+            statusLabel.setText("Status: All files scanned!");
+
+            String summary = "Box: " + selectedBox.getLabel()
+                    + " | Profile: " + selectedBox.getProfileName()
+                    + " | Documents: " + scanManager.getAllDocuments().size()
+                    + " | Pages: " + scanManager.getTotalFilesFetched();
+            logManager.log("SCAN_COMPLETE",
+                    SessionManager.getInstance().getCurrentUser().getId(),
+                    summary);
+            return;
+        }
+
+        Task<Void> fetchTask = new Task<>() {
+            @Override
+            protected Void call() throws Exception {
+                List<ScannedFile> fetched = scanManager.fetchNext();
+                if (fetched == null || fetched.isEmpty()) return null;
+
+                double brightness = getProfileBrightness();
+
+                for (ScannedFile file : fetched) {
+                    Platform.runLater(() -> {
+                        if (!headerExists(file.getDocumentId())) {
+                            sidebarItems.add(
+                                    new SidebarItem(file.getDocumentId()));
+                        }
+                        sidebarItems.add(new SidebarItem(file));
+                        statusLabel.setText("Status: Scanning...");
+
+                        try {
+                            BufferedImage buffered = ImageIO.read(
+                                    new ByteArrayInputStream(
+                                            file.getImageData()));
+                            if (buffered != null) {
+                                imagePreviewComponentController.setImage(
+                                        SwingFXUtils.toFXImage(buffered, null),
+                                        file,
+                                        brightness);
+                            }
+                        } catch (Exception e) {
+                            statusLabel.setText("Could not display image — "
+                                    + e.getMessage());
+                        }
+
+                        int totalScans = scanManager.getAllDocuments()
+                                .stream()
+                                .mapToInt(d -> d.getFiles().size())
+                                .sum();
+                        scanCountLabel.setText("Scans: " + totalScans
+                                + " / " + scanManager.getTotalAvailable());
+                        documentCountLabel.setText("Documents: "
+                                + scanManager.getAllDocuments().size());
+
+                        if (!scanManager.hasMore()) {
+                            scanNextButton.setDisable(true);
+                            startScanButton.setDisable(false);
+                            statusLabel.setText("Status: Done — "
+                                    + scanManager.getTotalFilesFetched()
+                                    + " files scanned");
+                        }
+                    });
+                }
+                return null;
+            }
+        };
+
+        fetchTask.setOnFailed(e -> Platform.runLater(() ->
+                statusLabel.setText("Error: "
+                        + fetchTask.getException().getMessage())));
+
+        Thread thread = new Thread(fetchTask);
+        thread.setDaemon(true);
+        thread.start();
+    }
+
+    // ── Stop Scan ─────────────────────────────────────────────────────────────
+    @FXML
+    private void onStopScan() {
+        scanNextButton.setDisable(true);
+        startScanButton.setDisable(false);
+        statusLabel.setText("Status: Stopped");
+    }
+
+    // ── Move Up ───────────────────────────────────────────────────────────────
     @FXML
     private void onMoveUp() {
         int index = fileListView.getSelectionModel().getSelectedIndex();
         if (index <= 0) return;
-        SidebarItem item = sidebarItems.remove(index);
-        sidebarItems.add(index - 1, item);
+
+        SidebarItem selected = sidebarItems.get(index);
+        if (selected.isHeader()) return;
+
+        // Cannot move above own document header
+        SidebarItem above = sidebarItems.get(index - 1);
+        if (above.isHeader()) {
+            statusLabel.setText(
+                    "Status: Cannot move the first file above its document.");
+            return;
+        }
+
+        sidebarItems.remove(index);
+        sidebarItems.add(index - 1, selected);
         fileListView.getSelectionModel().select(index - 1);
+        fileListView.scrollTo(index - 1);
+        statusLabel.setText("Status: File moved up — saving...");
+        saveOrderToDB();
     }
 
-    // Move Down
+    // ── Move Down ─────────────────────────────────────────────────────────────
     @FXML
     private void onMoveDown() {
         int index = fileListView.getSelectionModel().getSelectedIndex();
         if (index < 0 || index >= sidebarItems.size() - 1) return;
-        SidebarItem item = sidebarItems.remove(index);
-        sidebarItems.add(index + 1, item);
-        fileListView.getSelectionModel().select(index + 1);
+
+        SidebarItem selected = sidebarItems.get(index);
+        if (selected.isHeader()) return;
+
+        SidebarItem below = sidebarItems.get(index + 1);
+
+        if (below.isHeader()) {
+            // Skip the header — move into next document
+            if (index + 2 >= sidebarItems.size()) {
+                statusLabel.setText(
+                        "Status: Cannot move below last document header.");
+                return;
+            }
+            sidebarItems.remove(index);
+            sidebarItems.add(index + 2, selected);
+            fileListView.getSelectionModel().select(index + 2);
+            fileListView.scrollTo(index + 2);
+        } else {
+            sidebarItems.remove(index);
+            sidebarItems.add(index + 1, selected);
+            fileListView.getSelectionModel().select(index + 1);
+            fileListView.scrollTo(index + 1);
+        }
+
+        statusLabel.setText("Status: File moved down — saving...");
+        saveOrderToDB();
     }
 
-    // Delete File
+    // ── Delete File ───────────────────────────────────────────────────────────
     @FXML
     private void onDeleteFile() {
         SidebarItem selected =
@@ -205,113 +624,13 @@ public class ScanViewController {
             return;
         }
         sidebarItems.remove(selected);
+        logManager.log("FILE_DELETED",
+                SessionManager.getInstance().getCurrentUser().getId(),
+                "File #" + selected.getFile().getFileId() + " removed");
         statusLabel.setText("Status: File removed");
     }
 
-    // Start Scan
-    @FXML
-    private void onStartScan() {
-        scanning = true;
-        statusLabel.setText("Status: Waiting for first barcode...");
-        sidebarItems.clear();
-
-        Task<Void> scanTask = new Task<>() {
-            @Override
-            protected Void call() throws Exception {
-
-                scanManager.setCurrentBoxId(boxIdField.getText());
-
-                try {
-                    pageDAO.clearPages();
-                } catch (Exception e) {
-                    System.out.println("Could not clear pages: " + e.getMessage());
-                }
-
-                scanManager.initSession();
-
-                Platform.runLater(() -> {
-                    scanCountLabel.setText(
-                            "Scans: 0 / " + scanManager.getTotalAvailable());
-                    statusLabel.setText("Status: Waiting for first barcode...");
-                });
-
-                while (scanManager.hasMore() && scanning) {
-                    List<ScannedFile> fetched = scanManager.fetchNext();
-                    if (fetched == null) break;
-
-                    for (ScannedFile file : fetched) {
-
-                        new Thread(() -> {
-                            try {
-                                pageDAO.insertPage(file);
-                            } catch (Exception e) {
-                                System.out.println("DB save failed: "
-                                        + e.getMessage());
-                            }
-                        }).start();
-
-                        Platform.runLater(() -> {
-                            if (!headerExists(file.getDocumentId())) {
-                                sidebarItems.add(
-                                        new SidebarItem(file.getDocumentId()));
-                            }
-                            sidebarItems.add(new SidebarItem(file));
-
-                            statusLabel.setText("Status: Scanning...");
-
-                            try {
-                                BufferedImage buffered = ImageIO.read(
-                                        new ByteArrayInputStream(
-                                                file.getImageData()));
-                                if (buffered != null) {
-                                    Image image = SwingFXUtils.toFXImage(
-                                            buffered, null);
-                                    imagePreviewComponentController.setImage(
-                                            image, file);
-                                }
-                            } catch (Exception e) {
-                                statusLabel.setText(
-                                        "Could not display image — "
-                                                + e.getMessage());
-                            }
-
-                            int totalScans = scanManager.getAllDocuments()
-                                    .stream()
-                                    .mapToInt(d -> d.getFiles().size())
-                                    .sum();
-                            scanCountLabel.setText("Scans: " + totalScans
-                                    + " / " + scanManager.getTotalAvailable());
-                            documentCountLabel.setText("Documents: "
-                                    + scanManager.getAllDocuments().size());
-                        });
-                    }
-                }
-
-                Platform.runLater(() ->
-                        statusLabel.setText("Status: Done — "
-                                + scanManager.getTotalFilesFetched()
-                                + " files scanned"));
-                return null;
-            }
-        };
-
-        scanTask.setOnFailed(e -> Platform.runLater(() ->
-                statusLabel.setText("Status: Error — "
-                        + scanTask.getException().getMessage())));
-
-        Thread thread = new Thread(scanTask);
-        thread.setDaemon(true);
-        thread.start();
-    }
-
-    // Stop Scan
-    @FXML
-    private void onStopScan() {
-        scanning = false;
-        statusLabel.setText("Status: Stopped");
-    }
-
-    // Open Slideshow
+    // ── Open Slideshow ────────────────────────────────────────────────────────
     @FXML
     private void onOpenSlideshow() {
         List<ScannedFile> allFiles = sidebarItems.stream()
@@ -344,7 +663,7 @@ public class ScanViewController {
         }
     }
 
-    // Logout
+    // ── Logout ────────────────────────────────────────────────────────────────
     @FXML
     private void handleLogout() {
         SessionManager.getInstance().logout();

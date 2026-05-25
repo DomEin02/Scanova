@@ -1,0 +1,119 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.geometry.Insets?>
+
+<HBox spacing="16"
+      xmlns="http://javafx.com/javafx/21"
+      xmlns:fx="http://javafx.com/fxml/1"
+      fx:controller="dk.easv.scanova.GUI.ArchiveController">
+
+    <!-- LEFT — Archive table -->
+    <VBox styleClass="panel" HBox.hgrow="ALWAYS">
+
+        <HBox alignment="CENTER_LEFT" spacing="10"
+              style="-fx-padding: 14 16 14 16;
+                     -fx-border-color: transparent transparent #E2E8F0 transparent;
+                     -fx-border-width: 0 0 0.5 0;">
+            <Label text="All Archives" styleClass="panel-title"/>
+            <Label fx:id="archiveCountBadge" text="0"
+                   style="-fx-background-color: #F0F2F5;
+                          -fx-text-fill: #718096;
+                          -fx-background-radius: 20;
+                          -fx-padding: 1 8; -fx-font-size: 11px;"/>
+            <Region HBox.hgrow="ALWAYS"/>
+            <Button text="+ New archive"
+                    styleClass="btn-primary"
+                    onAction="#handleClearForm"
+                    style="-fx-padding: 6 14; -fx-font-size: 12px;"/>
+        </HBox>
+
+        <TableView fx:id="archiveTable"
+                   VBox.vgrow="ALWAYS"
+                   prefHeight="350"
+                   style="-fx-border-color: transparent;
+                          -fx-background-color: transparent;">
+            <columns>
+                <TableColumn fx:id="colArchiveName"   text="Archive Name" prefWidth="200"/>
+                <TableColumn fx:id="colArchiveClient" text="Client"       prefWidth="150"/>
+                <TableColumn fx:id="colArchiveStatus" text="Status"       prefWidth="80"/>
+            </columns>
+            <placeholder>
+                <Label text="No archives found."
+                       style="-fx-text-fill: #A0AEC0; -fx-font-size: 13px;"/>
+            </placeholder>
+        </TableView>
+
+        <HBox spacing="8"
+              style="-fx-padding: 12 16;
+                     -fx-border-color: #E2E8F0 transparent transparent transparent;
+                     -fx-border-width: 0.5 0 0 0;">
+            <Button text="Edit selected"
+                    styleClass="btn-secondary"
+                    onAction="#handleEditArchive"
+                    style="-fx-padding: 7 16; -fx-font-size: 12px;"/>
+            <Button text="Deactivate selected"
+                    styleClass="btn-danger"
+                    onAction="#handleDeleteArchive"
+                    style="-fx-padding: 7 16; -fx-font-size: 12px;"/>
+            <Button text="Reactivate selected"
+                    styleClass="btn-secondary"
+                    onAction="#handleReactivateArchive"
+                    style="-fx-padding: 7 16; -fx-font-size: 12px;"/>
+        </HBox>
+    </VBox>
+
+    <!-- RIGHT — Archive form -->
+    <VBox styleClass="panel" prefWidth="290">
+
+        <VBox spacing="2"
+              style="-fx-padding: 16 16 14 16;
+                     -fx-border-color: transparent transparent #E2E8F0 transparent;
+                     -fx-border-width: 0 0 0.5 0;">
+            <Label fx:id="formTitle" text="Create New Archive"
+                   styleClass="panel-title"/>
+            <Label text="Fill in the details below"
+                   style="-fx-text-fill: #A0AEC0; -fx-font-size: 11px;"/>
+        </VBox>
+
+        <VBox spacing="14">
+            <padding><Insets top="16" right="16" bottom="16" left="16"/></padding>
+
+            <VBox spacing="5">
+                <Label text="Archive Name"
+                       style="-fx-text-fill: #4A5568; -fx-font-size: 12px;
+                              -fx-font-weight: bold;"/>
+                <TextField fx:id="nameField"
+                           promptText="e.g. 2024 Invoices"
+                           styleClass="text-field"/>
+            </VBox>
+
+            <VBox spacing="5">
+                <Label text="Client"
+                       style="-fx-text-fill: #4A5568; -fx-font-size: 12px;
+                              -fx-font-weight: bold;"/>
+                <ComboBox fx:id="clientComboBox"
+                          maxWidth="Infinity"
+                          promptText="Select a client"
+                          styleClass="combo-box"/>
+            </VBox>
+
+            <Label fx:id="feedbackLabel" text="" wrapText="true"
+                   style="-fx-font-size: 12px; -fx-min-height: 18;"/>
+
+            <Button fx:id="saveButton"
+                    text="Create Archive"
+                    styleClass="btn-primary"
+                    onAction="#handleSaveArchive"
+                    maxWidth="Infinity"
+                    style="-fx-padding: 10; -fx-font-size: 13px;"/>
+
+            <Button text="Clear form"
+                    styleClass="btn-secondary"
+                    onAction="#handleClearForm"
+                    maxWidth="Infinity"
+                    style="-fx-padding: 10; -fx-font-size: 13px;"/>
+        </VBox>
+    </VBox>
+
+</HBox>

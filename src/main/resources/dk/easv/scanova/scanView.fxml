@@ -8,10 +8,23 @@
 
     <top>
         <ToolBar>
-            <Button text="Start Scan (F1)" fx:id="startScanButton"
+            <Button text="Start Session" fx:id="startScanButton"
                     onAction="#onStartScan"/>
+            <Button text="Scan Next (F1)" fx:id="scanNextButton"
+                    onAction="#onScanNext"
+                    style="-fx-background-color: #2ECC9A;
+                           -fx-text-fill: white;
+                           -fx-font-weight: bold;
+                           -fx-background-radius: 5;"/>
             <Button text="Stop (F2)" fx:id="stopButton"
                     onAction="#onStopScan"/>
+            <Button text="📂 Load Previous Scan"
+                    fx:id="loadPreviousButton"
+                    onAction="#onLoadPreviousScan"
+                    style="-fx-background-color: #4A6A8A;
+               -fx-text-fill: white;
+               -fx-font-weight: bold;
+               -fx-background-radius: 5;"/>
             <Button text="Review Mode (F3)" onAction="#onOpenSlideshow"
                     style="-fx-background-color: #1ABC9C;
                            -fx-text-fill: white;
@@ -63,7 +76,8 @@
     </center>
 
     <bottom>
-        <HBox spacing="30" style="-fx-padding: 8; -fx-background-color: #f0f0f0;">
+        <HBox spacing="30"
+              style="-fx-padding: 8; -fx-background-color: #f0f0f0;">
             <Label fx:id="scanCountLabel" text="Scans: 0 / 0"/>
             <Label fx:id="documentCountLabel" text="Documents: 0"/>
             <Label fx:id="statusLabel" text="Status: Ready"/>
