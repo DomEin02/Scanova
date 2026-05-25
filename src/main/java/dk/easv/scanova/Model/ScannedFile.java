@@ -2,9 +2,9 @@ package dk.easv.scanova.Model;
 
 public class ScannedFile {
 
-    private int    fileId;
-    private int    dbFileId;
-    private int    referenceId;
+    private int    fileId;      // in-memory order id (1,2,3...)
+    private int    dbFileId;    // real id from files table in DB
+    private int    referenceId; // API reference id
     private byte[] imageData;
     private int    rotation;
     private int    documentId;

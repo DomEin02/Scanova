@@ -11,9 +11,9 @@ public class Client {
         this.name = name;
     }
 
-    public int     getId()       { return id; }
-    public String  getName()     { return name; }
-    public boolean isActive()    { return isActive; }
+    public int     getId()    { return id; }
+    public String  getName()  { return name; }
+    public boolean isActive() { return isActive; }
 
     public void setName(String name)      { this.name = name; }
     public void setActive(boolean active) { this.isActive = active; }

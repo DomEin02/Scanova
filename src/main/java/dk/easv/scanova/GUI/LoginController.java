@@ -3,7 +3,7 @@ package dk.easv.scanova.GUI;
 import dk.easv.scanova.BLL.LogManager;
 import dk.easv.scanova.BLL.SessionManager;
 import dk.easv.scanova.BLL.UserManager;
-import dk.easv.scanova.BE.User;
+import dk.easv.scanova.Model.User;
 import dk.easv.scanova.SceneManager;
 import javafx.fxml.FXML;
 import javafx.scene.control.*;
@@ -14,18 +14,8 @@ public class LoginController {
     @FXML private PasswordField passwordField;
     @FXML private Label         errorLabel;
 
-    private UserManager userManager;
-    private LogManager  logManager;
-
-    @FXML
-    public void initialize() {
-        try {
-            userManager = new UserManager();
-            logManager  = new LogManager();
-        } catch (Exception e) {
-            errorLabel.setText("Login failed. Please try again or contact your administrator!");
-        }
-    }
+    private final UserManager userManager = new UserManager();
+    private final LogManager  logManager  = new LogManager();
 
     @FXML
     private void handleLogin() {
@@ -44,14 +34,14 @@ public class LoginController {
             if (user == null) {
                 errorLabel.setText("Incorrect username or password.");
                 passwordField.clear();
-                try { logManager.log("LOGIN_FAILED", -1,
-                        "Failed login: " + username); } catch (Exception ignored) {}
+                logManager.log("LOGIN_FAILED", -1,
+                        "Failed login attempt: " + username);
                 return;
             }
 
             SessionManager.getInstance().setCurrentUser(user);
-            try { logManager.log("LOGIN_SUCCESS", user.getId(),
-                    "Login: " + user.getUsername()); } catch (Exception ignored) {}
+            logManager.log("LOGIN_SUCCESS", user.getId(),
+                    "Login: " + user.getUsername());
 
             if (user.isAdmin()) {
                 SceneManager.load("adminView.fxml");
@@ -60,7 +50,8 @@ public class LoginController {
             }
 
         } catch (Exception e) {
-            errorLabel.setText("Login failed. Please try again or contact your administrator!");
+            errorLabel.setText(
+                    "Login failed. Please try again or contact your administrator.");
         }
     }
 }

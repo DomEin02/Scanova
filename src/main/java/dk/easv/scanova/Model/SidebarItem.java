@@ -2,33 +2,25 @@ package dk.easv.scanova.Model;
 
 public class SidebarItem {
 
-    private final boolean isHeader;
-    private final int documentId;
-    private final dk.easv.scanova.Model.ScannedFile file;
+    private final boolean    isHeader;
+    private final int        documentId;
+    private final ScannedFile file;
 
-    // Header (Document)
+    // Header constructor
     public SidebarItem(int documentId) {
-        this.isHeader = true;
+        this.isHeader   = true;
         this.documentId = documentId;
-        this.file = null;
+        this.file       = null;
     }
 
-    // File
-    public SidebarItem(dk.easv.scanova.Model.ScannedFile file) {
-        this.isHeader = false;
+    // File constructor
+    public SidebarItem(ScannedFile file) {
+        this.isHeader   = false;
         this.documentId = file.getDocumentId();
-        this.file = file;
+        this.file       = file;
     }
 
-    public boolean isHeader() {
-        return isHeader;
-    }
-
-    public int getDocumentId() {
-        return documentId;
-    }
-
-    public dk.easv.scanova.Model.ScannedFile getFile() {
-        return file;
-    }
+    public boolean    isHeader()    { return isHeader; }
+    public int        getDocumentId() { return documentId; }
+    public ScannedFile getFile()    { return file; }
 }

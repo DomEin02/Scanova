@@ -48,6 +48,7 @@ public class Box {
     public void setArchiveName(String name) { this.archiveName = name; }
     public void setActive(boolean active)   { this.isActive = active; }
 
+    // Used for export folder naming: {profileName}_{boxLabel}
     public String getExportFolderName() {
         return (profileName != null ? profileName : "Default") + "_" + label;
     }

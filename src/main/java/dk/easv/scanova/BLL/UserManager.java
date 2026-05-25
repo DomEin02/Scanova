@@ -1,19 +1,18 @@
 package dk.easv.scanova.BLL;
 
 import dk.easv.scanova.DAL.UserDAO;
-import dk.easv.scanova.BE.User;
+import dk.easv.scanova.Model.User;
 import dk.easv.scanova.utils.PasswordUtil;
+
 import java.util.List;
 
 public class UserManager {
 
-    // No throws in constructor — UserDAO uses static DBConnector now
     private final UserDAO userDAO = new UserDAO();
 
     public User login(String username, String password) throws Exception {
         if (username == null || username.isBlank()) return null;
         if (password == null || password.isBlank()) return null;
-
         User user = userDAO.getUserByUsername(username);
         if (user == null) return null;
         if (!PasswordUtil.verify(password, user.getPassword())) return null;
@@ -24,12 +23,17 @@ public class UserManager {
         return userDAO.getAllUsers();
     }
 
-    public void createUser(String username, String password, String role) throws Exception {
+    public List<User> getAllUsersIncludingInactive() throws Exception {
+        return userDAO.getAllUsersIncludingInactive();
+    }
+
+    public void createUser(String username, String password,
+                           String role) throws Exception {
         validateUsername(username);
         validatePassword(password);
         validateRole(role);
-        String hashedPassword = PasswordUtil.hash(password);
-        userDAO.createUser(new User(username, hashedPassword, role));
+        userDAO.createUser(new User(username,
+                PasswordUtil.hash(password), role));
     }
 
     public void updateUser(int id, String username, String newPassword,
@@ -37,8 +41,7 @@ public class UserManager {
         validateUsername(username);
         validateRole(role);
 
-        List<User> all = userDAO.getAllUsers();
-        User existing = all.stream()
+        User existing = userDAO.getAllUsersIncludingInactive().stream()
                 .filter(u -> u.getId() == id)
                 .findFirst()
                 .orElseThrow(() -> new Exception("User not found: " + id));
@@ -61,6 +64,10 @@ public class UserManager {
         userDAO.deleteUser(userId);
     }
 
+    public void reactivateUser(int userId) throws Exception {
+        userDAO.reactivateUser(userId);
+    }
+
     private void validateUsername(String u) throws Exception {
         if (u == null || u.isBlank())
             throw new Exception("Username cannot be empty.");
@@ -80,13 +87,5 @@ public class UserManager {
     private void validateRole(String r) throws Exception {
         if (!"Admin".equals(r) && !"User".equals(r))
             throw new Exception("Role must be 'Admin' or 'User'.");
-    }
-
-    public void reactivateUser(int userId) throws Exception {
-        userDAO.reactivateUser(userId);
-    }
-
-    public List<User> getAllUsersIncludingInactive() throws Exception {
-        return userDAO.getAllUsersIncludingInactive();
     }
 }

@@ -1,6 +1,6 @@
 package dk.easv.scanova.BLL;
 
-import dk.easv.scanova.BE.User;
+import dk.easv.scanova.Model.User;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 
@@ -13,9 +13,7 @@ public class SessionManager {
     private SessionManager() {}
 
     public static SessionManager getInstance() {
-        if (instance == null) {
-            instance = new SessionManager();
-        }
+        if (instance == null) instance = new SessionManager();
         return instance;
     }
 
@@ -24,7 +22,9 @@ public class SessionManager {
         this.loginTime   = LocalDateTime.now();
     }
 
-    public User getCurrentUser() { return currentUser; }
+    public User   getCurrentUser() { return currentUser; }
+    public boolean isAdmin()       { return currentUser != null && currentUser.isAdmin(); }
+    public boolean isLoggedIn()    { return currentUser != null; }
 
     public String getLoginTime() {
         if (loginTime == null) return "—";
@@ -32,16 +32,8 @@ public class SessionManager {
                 DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss"));
     }
 
-    public boolean isAdmin() {
-        return currentUser != null && currentUser.isAdmin();
-    }
-
     public void logout() {
         this.currentUser = null;
         this.loginTime   = null;
-    }
-
-    public boolean isLoggedIn() {
-        return currentUser != null;
     }
 }

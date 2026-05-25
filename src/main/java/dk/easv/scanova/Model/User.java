@@ -21,11 +21,11 @@ public class User {
         this.role     = role;
     }
 
-    public int     getId()        { return id; }
-    public String  getUsername()  { return username; }
-    public String  getPassword()  { return password; }
-    public String  getRole()      { return role; }
-    public boolean isActive()     { return isActive; }
+    public int     getId()       { return id; }
+    public String  getUsername() { return username; }
+    public String  getPassword() { return password; }
+    public String  getRole()     { return role; }
+    public boolean isActive()    { return isActive; }
 
     public void setUsername(String username) { this.username = username; }
     public void setPassword(String password) { this.password = password; }

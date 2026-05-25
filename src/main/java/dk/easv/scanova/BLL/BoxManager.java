@@ -2,6 +2,7 @@ package dk.easv.scanova.BLL;
 
 import dk.easv.scanova.DAL.BoxDAO;
 import dk.easv.scanova.Model.Box;
+
 import java.util.List;
 
 public class BoxManager {
@@ -18,10 +19,6 @@ public class BoxManager {
 
     public List<Box> getBoxesByArchiveId(int archiveId) throws Exception {
         return boxDAO.getBoxesByArchiveId(archiveId);
-    }
-
-    public Box getBoxByLabel(String label) throws Exception {
-        return boxDAO.getBoxByLabel(label);
     }
 
     public void createBox(String label, int archiveId,
@@ -53,9 +50,5 @@ public class BoxManager {
             throw new Exception("Box label cannot be empty.");
         if (label.length() > 100)
             throw new Exception("Box label cannot exceed 100 characters.");
-    }
-
-    public boolean isCombinationAlreadyUsed(int boxId, int profileId) throws Exception {
-        return boxDAO.isCombinationAlreadyUsed(boxId, profileId);
     }
 }
