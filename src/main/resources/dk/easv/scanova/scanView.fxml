@@ -31,7 +31,13 @@
                            -fx-font-weight: bold;
                            -fx-background-radius: 5;"/>
             <Separator />
-            <Button text="Export TIFF (F4)" fx:id="exportButton"/>
+            <Button text="Export TIFF (F4)" fx:id="exportButton"
+                    onAction="#onExport"
+                    style="-fx-background-color: #7C3AED;
+               -fx-text-fill: white;
+               -fx-font-weight: bold;
+               -fx-background-radius: 5;
+               -fx-cursor: hand;"/>
             <Separator />
             <Label text="Profile:" />
             <ComboBox fx:id="profileComboBox"/>

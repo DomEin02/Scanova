@@ -1,10 +1,6 @@
 package dk.easv.scanova.GUI;
 
-import dk.easv.scanova.BLL.FileManager;
-import dk.easv.scanova.BLL.LogManager;
-import dk.easv.scanova.BLL.ScanHistoryManager;
-import dk.easv.scanova.BLL.ScanManager;
-import dk.easv.scanova.BLL.SessionManager;
+import dk.easv.scanova.BLL.*;
 import dk.easv.scanova.Model.Box;
 import dk.easv.scanova.Model.ScannedFile;
 import dk.easv.scanova.Model.SidebarItem;
@@ -51,6 +47,7 @@ public class ScanViewController {
     private final LogManager          logManager     = new LogManager();
     private final FileManager         fileManager    = new FileManager();
     private final ScanHistoryManager  historyManager = new ScanHistoryManager();
+    private final ExportManager exportManager = new ExportManager();
 
     private final ObservableList<SidebarItem> sidebarItems =
             FXCollections.observableArrayList();
@@ -404,6 +401,7 @@ public class ScanViewController {
             }
             case F2 -> { onStopScan(); event.consume(); }
             case F3 -> { onOpenSlideshow(); event.consume(); }
+            case F4 -> { onExport(); event.consume(); }
             case DELETE -> { onDeleteFile(); event.consume(); }
             case UP -> { onMoveUp(); event.consume(); }
             case DOWN -> { onMoveDown(); event.consume(); }
@@ -538,6 +536,79 @@ public class ScanViewController {
         Thread thread = new Thread(fetchTask);
         thread.setDaemon(true);
         thread.start();
+    }
+
+    // Add this method:
+// ── Export TIFF ───────────────────────────────────────────────────────────
+    @FXML
+    private void onExport() {
+        if (sidebarItems.isEmpty()) {
+            statusLabel.setText("Status: Nothing to export — scan first.");
+            return;
+        }
+
+        // Need a box to know the export folder name
+        if (selectedBox == null) {
+            statusLabel.setText("Status: No active session — scan first.");
+            return;
+        }
+
+        // Ask user: single-page or multi-page
+        javafx.scene.control.ChoiceDialog<String> dialog =
+                new javafx.scene.control.ChoiceDialog<>(
+                        "Single-page TIFF",
+                        "Single-page TIFF", "Multi-page TIFF");
+        dialog.setTitle("Export TIFF");
+        dialog.setHeaderText("Choose export format");
+        dialog.setContentText("Format:");
+
+        dialog.showAndWait().ifPresent(choice -> {
+            boolean multiPage = choice.equals("Multi-page TIFF");
+            String folderName = selectedBox.getExportFolderName();
+
+            statusLabel.setText("Status: Exporting...");
+
+            // Run export on background thread — API calls are slow
+            javafx.concurrent.Task<Integer> exportTask =
+                    new javafx.concurrent.Task<>() {
+                        @Override
+                        protected Integer call() throws Exception {
+                            if (multiPage) {
+                                return exportManager.exportMultiPage(
+                                        sidebarItems, folderName);
+                            } else {
+                                return exportManager.exportSinglePage(
+                                        sidebarItems, folderName);
+                            }
+                        }
+                    };
+
+            exportTask.setOnSucceeded(e -> {
+                int count = exportTask.getValue();
+                String type = multiPage ? "documents" : "files";
+                statusLabel.setText("Status: Exported " + count
+                        + " " + type + " to "
+                        + System.getProperty("user.home")
+                        + "/Scanova_Exports/"
+                        + folderName);
+
+                // Log the export
+                logManager.log(
+                        "SCAN_COMPLETE",
+                        SessionManager.getInstance().getCurrentUser().getId(),
+                        "Exported " + count + " " + type
+                                + " | Box: " + selectedBox.getLabel()
+                                + " | Format: " + choice);
+            });
+
+            exportTask.setOnFailed(e ->
+                    statusLabel.setText("Export failed: "
+                            + exportTask.getException().getMessage()));
+
+            Thread thread = new Thread(exportTask);
+            thread.setDaemon(true);
+            thread.start();
+        });
     }
 
     // ── Stop Scan ─────────────────────────────────────────────────────────────
