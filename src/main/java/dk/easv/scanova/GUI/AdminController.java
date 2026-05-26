@@ -285,14 +285,16 @@ public class AdminController {
                 logManager.log("USER_CREATED",
                         SessionManager.getInstance().getCurrentUser().getId(),
                         "User created: " + username);
+                loadUsers();
+                handleClearForm();
                 showFeedback("User '" + username + "' created successfully!", true);
             } else {
                 userManager.updateUser(
                         userBeingEdited.getId(), username, password, role);
+                loadUsers();
+                handleClearForm();
                 showFeedback("User '" + username + "' updated successfully!", true);
             }
-            loadUsers();
-            handleClearForm();
         } catch (Exception e) {
             showFeedback(e.getMessage(), false);
         }
