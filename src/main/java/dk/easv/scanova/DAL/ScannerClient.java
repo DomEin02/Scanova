@@ -14,7 +14,7 @@ public class ScannerClient {
     private static final String BASE_URL =
             "https://studentiffapi-production.up.railway.app";
 
-    // ── Get total count ───────────────────────────────────────────────────────
+    // Get total count
     public int getTotalCount() throws Exception {
         URL url = new URL(BASE_URL + "/getCount");
         HttpURLConnection conn = (HttpURLConnection) url.openConnection();
@@ -27,7 +27,7 @@ public class ScannerClient {
         }
     }
 
-    // ── Fetch one file by id — used for scan one at a time ───────────────────
+    // Fetch one file by id — used for scan one at a time
     public List<byte[]> fetchTiffsById(int id) throws Exception {
         URL url = new URL(BASE_URL + "/getById/" + id);
         HttpURLConnection conn = (HttpURLConnection) url.openConnection();
@@ -51,7 +51,7 @@ public class ScannerClient {
         return unzip(zipBytes);
     }
 
-    // ── Fetch first N files ───────────────────────────────────────────────────
+    // Fetch first N files
     public List<byte[]> fetchTiffs(int amount) throws Exception {
         URL url = new URL(BASE_URL + "/getFiles/" + amount);
         HttpURLConnection conn = (HttpURLConnection) url.openConnection();
@@ -71,7 +71,7 @@ public class ScannerClient {
         return unzip(zipBytes);
     }
 
-    // ── Fetch files with offset and limit ─────────────────────────────────────
+    // Fetch files with offset and limit
     public List<byte[]> fetchTiffsWithOffset(int offset,
                                              int limit) throws Exception {
         URL url = new URL(BASE_URL + "/getFiles/" + offset + "/" + limit);
@@ -92,7 +92,7 @@ public class ScannerClient {
         return unzip(zipBytes);
     }
 
-    // ── Fetch all files — used for export ─────────────────────────────────────
+    // Fetch all files — used for export
     public List<byte[]> fetchAllTiffs() throws Exception {
         URL url = new URL(BASE_URL + "/getAllFiles");
         HttpURLConnection conn = (HttpURLConnection) url.openConnection();
@@ -113,7 +113,7 @@ public class ScannerClient {
         return unzip(zipBytes);
     }
 
-    // ── Shared unzip helper ───────────────────────────────────────────────────
+    // Shared unzip helper
     private List<byte[]> unzip(byte[] zipBytes) throws Exception {
         List<byte[]> tiffs = new ArrayList<>();
         try (ZipInputStream zis = new ZipInputStream(

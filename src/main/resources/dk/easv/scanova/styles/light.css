@@ -129,9 +129,14 @@
 .table-row-cell:odd {
     -fx-background-color: #FAFAFA;
 }
+
 .table-row-cell:selected {
-    -fx-background-color: #E6FBF4;
-    -fx-text-fill: #1B2A4A;
+    -fx-background-color: #2ECC9A;
+    -fx-text-fill: white;
+}
+
+.table-row-cell:selected .table-cell {
+    -fx-text-fill: white;
 }
 
 /*<--Buttons--> */
@@ -168,6 +173,15 @@
 }
 .btn-secondary:hover {
     -fx-background-color: #F7F8FA;
+}
+
+.shortcut-bar {
+    -fx-background-color: #F7F8FA;
+    -fx-border-color: #E2E8F0 transparent transparent transparent;
+    -fx-border-width: 0.5 0 0 0;
+    -fx-padding: 6 16;
+    -fx-text-fill: #A0AEC0;
+    -fx-font-size: 10px;
 }
 
 /*<--FormFields-->*/

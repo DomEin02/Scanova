@@ -26,7 +26,6 @@ public class ImagePreviewController {
     private double      profileBrightness = 1.0;
     private ScannedFile currentFile;
 
-    // GUI → BLL — never GUI → DAL
     private final FileManager fileManager = new FileManager();
 
     @FXML
@@ -79,7 +78,7 @@ public class ImagePreviewController {
         });
     }
 
-    // ── Set image with profile brightness ─────────────────────────────────────
+    // Set image with profile brightness
     public void setImage(Image image, ScannedFile file, double brightness) {
         this.currentFile       = file;
         this.profileBrightness = brightness;
@@ -100,12 +99,12 @@ public class ImagePreviewController {
         Platform.runLater(this::applyImageLayout);
     }
 
-    // ── Set image without brightness — fallback ───────────────────────────────
+    // Set image without brightness — fallback
     public void setImage(Image image, ScannedFile file) {
         setImage(image, file, 1.0);
     }
 
-    // ── Apply brightness to image ─────────────────────────────────────────────
+    // Apply brightness to image
     private Image applyBrightness(Image image, double brightness) {
         if (Math.abs(brightness - 1.0) < 0.01) return image; // no change needed
 
@@ -131,7 +130,7 @@ public class ImagePreviewController {
         return output;
     }
 
-    // ── Apply rotation and scale to image ─────────────────────────────────────
+    // Apply rotation and scale to image
     private void applyImageLayout() {
         if (imageView.getImage() == null) return;
 

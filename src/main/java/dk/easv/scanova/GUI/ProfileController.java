@@ -9,8 +9,9 @@ import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
 import javafx.scene.control.*;
-import javafx.scene.paint.Color;
-import java.util.List;
+import javafx.scene.layout.HBox;
+import java.util.HashMap;
+import java.util.Map;
 
 public class ProfileController {
 
@@ -25,110 +26,106 @@ public class ProfileController {
     @FXML private Label            profileFormTitle;
     @FXML private TextField        profileNameField;
     @FXML private Slider           profileRotationSlider;
-    @FXML private Label            profileRotationValueLabel;
     @FXML private Slider           profileBrightnessSlider;
+    @FXML private Label            profileRotationValueLabel;
     @FXML private Label            profileBrightnessValueLabel;
     @FXML private ComboBox<Client> profileClientComboBox;
     @FXML private Label            profileFeedbackLabel;
     @FXML private Button           profileSaveButton;
 
-    private ProfileManager profileManager;
-    private ClientManager  clientManager;
-    private Profile        profileBeingEdited = null;
-    private List<Client>   allClients;
+    private final ProfileManager profileManager = new ProfileManager();
+    private final ClientManager  clientManager  = new ClientManager();
+    private Profile profileBeingEdited = null;
+    private final Map<Integer, String> clientNameMap = new HashMap<>();
 
     @FXML
     public void initialize() {
-        try {
-            profileManager = new ProfileManager();
-            clientManager  = new ClientManager();
-        } catch (Exception e) {
-            showFeedback("Cannot connect to database: " + e.getMessage(), false);
-            return;
+        colProfileName.setCellValueFactory(data ->
+                new SimpleStringProperty(data.getValue().getName()));
+        colProfileRotation.setCellValueFactory(data ->
+                new SimpleStringProperty(data.getValue().getRotation() + "°"));
+        colProfileBrightness.setCellValueFactory(data ->
+                new SimpleStringProperty(String.valueOf(data.getValue().getBrightness())));
+        colProfileClient.setCellValueFactory(data ->
+                new SimpleStringProperty(clientNameMap.getOrDefault(data.getValue().getClientId(), "—")));
+
+        if (colProfileStatus != null) {
+            colProfileStatus.setCellValueFactory(data ->
+                    new SimpleStringProperty(data.getValue().isActive() ? "Active" : "Inactive"));
+            colProfileStatus.setCellFactory(col -> new TableCell<>() {
+                @Override
+                protected void updateItem(String item, boolean empty) {
+                    super.updateItem(item, empty);
+                    if (empty || item == null) {
+                        setText(null); setStyle("");
+                    } else if (item.equals("Active")) {
+                        setText("Active");
+                        setStyle("-fx-text-fill: #2ECC9A; -fx-font-weight: bold;");
+                    } else {
+                        setText("Inactive");
+                        setStyle("-fx-text-fill: #E53E3E; -fx-font-weight: bold;");
+                    }
+                }
+            });
         }
 
-        colProfileName.setCellValueFactory(d ->
-                new SimpleStringProperty(d.getValue().getName()));
-
-        colProfileRotation.setCellValueFactory(d ->
-                new SimpleStringProperty(
-                        String.valueOf((int) d.getValue().getRotation()) + "°"));
-
-        colProfileBrightness.setCellValueFactory(d ->
-                new SimpleStringProperty(
-                        String.format("%.1f", d.getValue().getBrightness())));
-
-        colProfileClient.setCellValueFactory(d -> {
-            int clientId = d.getValue().getClientId();
-            if (allClients != null) {
-                return allClients.stream()
-                        .filter(c -> c.getId() == clientId)
-                        .findFirst()
-                        .map(c -> new SimpleStringProperty(c.getName()))
-                        .orElse(new SimpleStringProperty("Unknown"));
+        // Inline action buttons per row
+        TableColumn<Profile, Void> actionsCol = new TableColumn<>("Actions");
+        actionsCol.setPrefWidth(240);
+        actionsCol.setCellFactory(col -> new TableCell<>() {
+            private final Button editBtn       = new Button("Edit");
+            private final Button deactivateBtn = new Button("Deactivate");
+            private final Button reactivateBtn = new Button("Reactivate");
+            private final HBox   box           = new HBox(6, editBtn, deactivateBtn, reactivateBtn);
+            {
+                editBtn.setOnAction(e -> {
+                    profileTable.getSelectionModel().select(getIndex());
+                    handleEditProfile();
+                });
+                deactivateBtn.setOnAction(e -> {
+                    profileTable.getSelectionModel().select(getIndex());
+                    handleDeleteProfile();
+                });
+                reactivateBtn.setOnAction(e -> {
+                    profileTable.getSelectionModel().select(getIndex());
+                    handleReactivateProfile();
+                });
             }
-            return new SimpleStringProperty(String.valueOf(clientId));
-        });
 
-        colProfileStatus.setCellValueFactory(d ->
-                new SimpleStringProperty(
-                        d.getValue().isActive() ? "Active" : "Inactive"));
-
-        colProfileStatus.setCellFactory(col -> new TableCell<>() {
             @Override
-            protected void updateItem(String item, boolean empty) {
+            protected void updateItem(Void item, boolean empty) {
                 super.updateItem(item, empty);
-                if (empty || item == null) {
-                    setText(null);
-                    setStyle("");
-                } else if (item.equals("Active")) {
-                    setText("Active");
-                    setStyle("-fx-text-fill: #2ECC9A; -fx-font-weight: bold;");
-                } else {
-                    setText("Inactive");
-                    setStyle("-fx-text-fill: #E53E3E; -fx-font-weight: bold;");
-                }
+                setGraphic(empty ? null : box);
             }
         });
+        profileTable.getColumns().add(actionsCol);
 
-        profileRotationSlider.setMin(-180);
-        profileRotationSlider.setMax(180);
-        profileRotationSlider.setValue(0);
-        profileRotationSlider.setMajorTickUnit(45);
-        profileRotationSlider.setSnapToTicks(false);
-        profileRotationSlider.valueProperty().addListener((obs, oldVal, newVal) -> {
-            int snapped = ((int) Math.round(newVal.doubleValue() / 5)) * 5;
-            profileRotationSlider.setValue(snapped);
-            profileRotationValueLabel.setText(snapped + "°");
-        });
-
-        profileBrightnessSlider.setMin(0.1);
-        profileBrightnessSlider.setMax(3.0);
-        profileBrightnessSlider.setValue(1.0);
-        profileBrightnessSlider.valueProperty().addListener((obs, oldVal, newVal) -> {
-            double rounded = Math.round(newVal.doubleValue() * 10.0) / 10.0;
-            profileBrightnessValueLabel.setText(String.valueOf(rounded));
-        });
+        // Slider live labels
+        profileRotationSlider.valueProperty().addListener((obs, oldVal, newVal) ->
+                profileRotationValueLabel.setText(String.format("%.0f°", newVal.doubleValue())));
+        profileBrightnessSlider.valueProperty().addListener((obs, oldVal, newVal) ->
+                profileBrightnessValueLabel.setText(String.format("%.1f", newVal.doubleValue())));
 
         loadClients();
-        loadProfileTable();
+        loadProfiles();
     }
 
     private void loadClients() {
         try {
-            allClients = clientManager.getAllClients();
-            profileClientComboBox.setItems(
-                    FXCollections.observableArrayList(allClients));
+            ObservableList<Client> clients =
+                    FXCollections.observableArrayList(clientManager.getAllClients());
+            profileClientComboBox.setItems(clients);
+            clientNameMap.clear();
+            for (Client c : clients) clientNameMap.put(c.getId(), c.getName());
         } catch (Exception e) {
             showFeedback("Could not load clients: " + e.getMessage(), false);
         }
     }
 
-    private void loadProfileTable() {
+    private void loadProfiles() {
         try {
             ObservableList<Profile> profiles =
-                    FXCollections.observableArrayList(
-                            profileManager.getAllProfilesIncludingInactive());
+                    FXCollections.observableArrayList(profileManager.getAllProfilesIncludingInactive());
             profileTable.setItems(profiles);
             if (profileCountBadge != null)
                 profileCountBadge.setText(String.valueOf(
@@ -139,98 +136,77 @@ public class ProfileController {
     }
 
     @FXML
+    private void handleSaveProfile() {
+        String name       = profileNameField.getText().trim();
+        float  rotation   = (float) profileRotationSlider.getValue();
+        float  brightness = (float) profileBrightnessSlider.getValue();
+        Client client     = profileClientComboBox.getValue();
+
+        try {
+            if (profileBeingEdited == null) {
+                if (client == null) throw new Exception("Please select a client.");
+                profileManager.createProfile(name, rotation, brightness, client.getId());
+                showFeedback("Profile '" + name + "' created!", true);
+            } else {
+                int clientId = client != null ? client.getId() : profileBeingEdited.getClientId();
+                profileManager.updateProfile(profileBeingEdited.getId(), name, rotation, brightness, clientId);
+                showFeedback("Profile '" + name + "' updated!", true);
+            }
+            loadProfiles();
+            handleClearForm();
+        } catch (Exception e) {
+            showFeedback(e.getMessage(), false);
+        }
+    }
+
     private void handleEditProfile() {
         Profile selected = profileTable.getSelectionModel().getSelectedItem();
-        if (selected == null) {
-            showFeedback("Please select a profile to edit.", false);
-            return;
-        }
+        if (selected == null) { showFeedback("Please select a profile to edit.", false); return; }
         profileBeingEdited = selected;
         profileNameField.setText(selected.getName());
         profileRotationSlider.setValue(selected.getRotation());
         profileBrightnessSlider.setValue(selected.getBrightness());
-        if (allClients != null) {
-            allClients.stream()
-                    .filter(c -> c.getId() == selected.getClientId())
-                    .findFirst()
-                    .ifPresent(c -> profileClientComboBox.setValue(c));
-        }
-        profileFormTitle.setText("Edit profile");
-        profileSaveButton.setText("Update profile");
+        Client matchingClient = profileClientComboBox.getItems().stream()
+                .filter(c -> c.getId() == selected.getClientId())
+                .findFirst().orElse(null);
+        profileClientComboBox.setValue(matchingClient);
+        profileFormTitle.setText("Edit Profile");
+        profileSaveButton.setText("Update Profile");
         showFeedback("Editing: " + selected.getName(), true);
+        profileNameField.requestFocus();
     }
 
-    @FXML
-    private void handleDeactivateProfile() {
+    private void handleDeleteProfile() {
         Profile selected = profileTable.getSelectionModel().getSelectedItem();
-        if (selected == null) {
-            showFeedback("Please select a profile to deactivate.", false);
-            return;
-        }
-        if (!selected.isActive()) {
-            showFeedback("Profile is already inactive.", false);
-            return;
-        }
+        if (selected == null) { showFeedback("Please select a profile to deactivate.", false); return; }
         Alert confirm = new Alert(Alert.AlertType.CONFIRMATION);
         confirm.setTitle("Deactivate Profile");
         confirm.setHeaderText("Deactivate '" + selected.getName() + "'?");
-        confirm.setContentText("The profile will be hidden from scanning.");
+        confirm.setContentText("The profile will be deactivated and cannot be used for scanning.");
         confirm.showAndWait().ifPresent(response -> {
             if (response == ButtonType.OK) {
                 try {
                     profileManager.deleteProfile(selected.getId());
                     showFeedback("Profile deactivated.", true);
-                    loadProfileTable();
+                    loadProfiles();
                     handleClearForm();
                 } catch (Exception e) {
-                    showFeedback("Could not deactivate: " + e.getMessage(), false);
+                    showFeedback(e.getMessage(), false);
                 }
             }
         });
     }
 
-    @FXML
     private void handleReactivateProfile() {
         Profile selected = profileTable.getSelectionModel().getSelectedItem();
-        if (selected == null) {
-            showFeedback("Please select a profile to reactivate.", false);
-            return;
-        }
-        if (selected.isActive()) {
-            showFeedback("Profile is already active.", false);
-            return;
-        }
+        if (selected == null) { showFeedback("Please select a profile to reactivate.", false); return; }
+        if (selected.isActive()) { showFeedback("Profile is already active.", false); return; }
         try {
             profileManager.reactivateProfile(selected.getId());
             showFeedback("Profile '" + selected.getName() + "' reactivated!", true);
-            loadProfileTable();
+            loadProfiles();
         } catch (Exception e) {
             showFeedback("Could not reactivate: " + e.getMessage(), false);
-        }
-    }
-
-    @FXML
-    private void handleSaveProfile() {
-        String name       = profileNameField.getText().trim();
-        float  rotation   = (float) profileRotationSlider.getValue();
-        float  brightness = (float) profileBrightnessSlider.getValue();
-        Client selectedClient = profileClientComboBox.getValue();
-        int    clientId       = selectedClient != null ? selectedClient.getId() : 0;
-        try {
-            if (profileBeingEdited == null) {
-                profileManager.createProfile(name, rotation, brightness, clientId);
-                loadProfileTable();
-                handleClearForm();
-                showFeedback("Profile '" + name + "' created!", true);
-            } else {
-                profileManager.updateProfile(
-                        profileBeingEdited.getId(), name, rotation, brightness, clientId);
-                loadProfileTable();
-                handleClearForm();
-                showFeedback("Profile '" + name + "' updated!", true);
-            }
-        } catch (Exception e) {
-            showFeedback(e.getMessage(), false);
         }
     }
 
@@ -247,9 +223,9 @@ public class ProfileController {
     }
 
     private void showFeedback(String message, boolean success) {
-        if (profileFeedbackLabel == null) return;
         profileFeedbackLabel.setText(message);
-        profileFeedbackLabel.setTextFill(
-                success ? Color.web("#2ECC9A") : Color.web("#E53E3E"));
+        profileFeedbackLabel.setStyle(success
+                ? "-fx-text-fill: #2ECC9A;"
+                : "-fx-text-fill: #E53E3E;");
     }
 }

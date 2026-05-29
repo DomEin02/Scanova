@@ -12,7 +12,7 @@ import java.util.List;
 
 public class LogController {
 
-    // ── Table ─────────────────────────────────────────────────────────────────
+    // Table
     @FXML private TableView<String[]>           logTable;
     @FXML private TableColumn<String[], String> colAction;
     @FXML private TableColumn<String[], String> colCategory;
@@ -20,7 +20,7 @@ public class LogController {
     @FXML private TableColumn<String[], String> colDetails;
     @FXML private TableColumn<String[], String> colTimestamp;
 
-    // ── Filters ───────────────────────────────────────────────────────────────
+    // Filters
     @FXML private CheckBox filterLogin;
     @FXML private CheckBox filterScanning;
     @FXML private CheckBox filterManagement;
@@ -76,7 +76,7 @@ public class LogController {
         loadLogs();
     }
 
-    // ── Load all logs ─────────────────────────────────────────────────────────
+    // Load all logs
     private void loadLogs() {
         try {
             List<String[]> logs = logManager.getAllLogs();
@@ -87,7 +87,7 @@ public class LogController {
         }
     }
 
-    // ── Apply filters ─────────────────────────────────────────────────────────
+    // Apply filters
     @FXML
     private void handleApplyFilter() {
         List<String> types = new ArrayList<>();
@@ -134,7 +134,7 @@ public class LogController {
         }
     }
 
-    // ── Clear filters ─────────────────────────────────────────────────────────
+    // Clear filters
     @FXML
     private void handleClearFilter() {
         filterLogin.setSelected(false);

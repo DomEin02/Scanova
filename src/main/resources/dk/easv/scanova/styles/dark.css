@@ -181,9 +181,12 @@
     -fx-text-fill: #E2E8F0;
 }
 .table-row-cell:selected {
-    -fx-background-color: rgba(46,204,154,0.18);
-    -fx-text-fill: #2ECC9A;
-    -fx-effect: dropshadow(gaussian, rgba(46,204,154,0.25), 8, 0, 0, 0);
+    -fx-background-color: #2ECC9A;
+    -fx-text-fill: white;
+}
+
+.table-row-cell:selected .table-cell {
+    -fx-text-fill: white;
 }
 .table-view .table-cell {
     -fx-text-fill: inherit;
@@ -272,6 +275,15 @@
     -fx-border-radius: 8;
     -fx-background-radius: 8;
     -fx-padding: 10 12 10 12;
+}
+
+.shortcut-bar {
+    -fx-background-color: #111827;
+    -fx-border-color: rgba(46,204,154,0.1) transparent transparent transparent;
+    -fx-border-width: 0.5 0 0 0;
+    -fx-padding: 6 16;
+    -fx-text-fill: #3A5580;
+    -fx-font-size: 10px;
 }
 
 /*<--Feedback-->*/

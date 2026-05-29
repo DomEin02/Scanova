@@ -10,7 +10,7 @@ import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
 import javafx.scene.control.*;
-import javafx.scene.paint.Color;
+import javafx.scene.layout.HBox;
 
 public class ArchiveController {
 
@@ -37,7 +37,6 @@ public class ArchiveController {
 
     @FXML
     public void initialize() {
-        // Client name now shown from joined query
         colArchiveName.setCellValueFactory(data ->
                 new SimpleStringProperty(data.getValue().getName()));
         colArchiveClient.setCellValueFactory(data ->
@@ -45,25 +44,59 @@ public class ArchiveController {
 
         if (colArchiveStatus != null) {
             colArchiveStatus.setCellValueFactory(data ->
-                    new SimpleStringProperty(
-                            data.getValue().isActive() ? "Active" : "Inactive"));
+                    new SimpleStringProperty(data.getValue().isActive() ? "Active" : "Inactive"));
             colArchiveStatus.setCellFactory(col -> new TableCell<>() {
                 @Override
                 protected void updateItem(String item, boolean empty) {
                     super.updateItem(item, empty);
+                    getStyleClass().removeAll("status-active", "status-inactive");
                     if (empty || item == null) {
                         setText(null);
-                        setStyle("");
                     } else if (item.equals("Active")) {
                         setText("Active");
-                        setStyle("-fx-text-fill: #2ECC9A; -fx-font-weight: bold;");
+                        getStyleClass().add("status-active");
                     } else {
                         setText("Inactive");
-                        setStyle("-fx-text-fill: #E53E3E; -fx-font-weight: bold;");
+                        getStyleClass().add("status-inactive");
                     }
                 }
             });
         }
+
+        // Inline action buttons per row
+        TableColumn<Archive, Void> actionsCol = new TableColumn<>("Actions");
+        actionsCol.setPrefWidth(240);
+        actionsCol.setCellFactory(col -> new TableCell<>() {
+            private final Button editBtn       = new Button("Edit");
+            private final Button deactivateBtn = new Button("Deactivate");
+            private final Button reactivateBtn = new Button("Reactivate");
+            private final HBox   box           = new HBox(6, editBtn, deactivateBtn, reactivateBtn);
+            {
+                editBtn.getStyleClass().add("btn-row-edit");
+                deactivateBtn.getStyleClass().add("btn-row-danger");
+                reactivateBtn.getStyleClass().add("btn-row-reactivate");
+
+                editBtn.setOnAction(e -> {
+                    archiveTable.getSelectionModel().select(getIndex());
+                    handleEditArchive();
+                });
+                deactivateBtn.setOnAction(e -> {
+                    archiveTable.getSelectionModel().select(getIndex());
+                    handleDeleteArchive();
+                });
+                reactivateBtn.setOnAction(e -> {
+                    archiveTable.getSelectionModel().select(getIndex());
+                    handleReactivateArchive();
+                });
+            }
+
+            @Override
+            protected void updateItem(Void item, boolean empty) {
+                super.updateItem(item, empty);
+                setGraphic(empty ? null : box);
+            }
+        });
+        archiveTable.getColumns().add(actionsCol);
 
         loadClients();
         loadArchives();
@@ -72,8 +105,7 @@ public class ArchiveController {
     private void loadClients() {
         try {
             ObservableList<Client> clients =
-                    FXCollections.observableArrayList(
-                            clientManager.getAllClients());
+                    FXCollections.observableArrayList(clientManager.getAllClients());
             clientComboBox.setItems(clients);
         } catch (Exception e) {
             showFeedback("Could not load clients: " + e.getMessage(), false);
@@ -83,8 +115,7 @@ public class ArchiveController {
     private void loadArchives() {
         try {
             ObservableList<Archive> archives =
-                    FXCollections.observableArrayList(
-                            archiveManager.getAllArchivesIncludingInactive());
+                    FXCollections.observableArrayList(archiveManager.getAllArchivesIncludingInactive());
             archiveTable.setItems(archives);
             if (archiveCountBadge != null)
                 archiveCountBadge.setText(String.valueOf(
@@ -96,19 +127,16 @@ public class ArchiveController {
 
     @FXML
     private void handleSaveArchive() {
-        String name = nameField.getText().trim();
+        String name           = nameField.getText().trim();
         Client selectedClient = clientComboBox.getValue();
 
         try {
             if (archiveBeingEdited == null) {
-                if (selectedClient == null)
-                    throw new Exception("Please select a client.");
-                archiveManager.createArchive(
-                        name, selectedClient.getId(), getCurrentUserId());
+                if (selectedClient == null) throw new Exception("Please select a client.");
+                archiveManager.createArchive(name, selectedClient.getId(), getCurrentUserId());
                 showFeedback("Archive '" + name + "' created!", true);
             } else {
-                archiveManager.updateArchive(
-                        archiveBeingEdited.getId(), name, getCurrentUserId());
+                archiveManager.updateArchive(archiveBeingEdited.getId(), name, getCurrentUserId());
                 showFeedback("Archive '" + name + "' updated!", true);
             }
             loadArchives();
@@ -118,13 +146,9 @@ public class ArchiveController {
         }
     }
 
-    @FXML
     private void handleEditArchive() {
         Archive selected = archiveTable.getSelectionModel().getSelectedItem();
-        if (selected == null) {
-            showFeedback("Please select an archive to edit.", false);
-            return;
-        }
+        if (selected == null) { showFeedback("Please select an archive to edit.", false); return; }
         archiveBeingEdited = selected;
         nameField.setText(selected.getName());
         formTitle.setText("Edit Archive");
@@ -132,13 +156,9 @@ public class ArchiveController {
         showFeedback("Editing: " + selected.getName(), true);
     }
 
-    @FXML
     private void handleDeleteArchive() {
         Archive selected = archiveTable.getSelectionModel().getSelectedItem();
-        if (selected == null) {
-            showFeedback("Please select an archive to deactivate.", false);
-            return;
-        }
+        if (selected == null) { showFeedback("Please select an archive to deactivate.", false); return; }
         Alert confirm = new Alert(Alert.AlertType.CONFIRMATION);
         confirm.setTitle("Deactivate Archive");
         confirm.setHeaderText("Deactivate '" + selected.getName() + "'?");
@@ -146,10 +166,7 @@ public class ArchiveController {
         confirm.showAndWait().ifPresent(response -> {
             if (response == ButtonType.OK) {
                 try {
-                    archiveManager.deleteArchive(
-                            selected.getId(),
-                            getCurrentUserId(),
-                            selected.getName());
+                    archiveManager.deleteArchive(selected.getId(), getCurrentUserId(), selected.getName());
                     showFeedback("Archive deactivated.", true);
                     loadArchives();
                     handleClearForm();
@@ -160,24 +177,13 @@ public class ArchiveController {
         });
     }
 
-    @FXML
     private void handleReactivateArchive() {
         Archive selected = archiveTable.getSelectionModel().getSelectedItem();
-        if (selected == null) {
-            showFeedback("Please select an archive to reactivate.", false);
-            return;
-        }
-        if (selected.isActive()) {
-            showFeedback("Archive is already active.", false);
-            return;
-        }
+        if (selected == null) { showFeedback("Please select an archive to reactivate.", false); return; }
+        if (selected.isActive()) { showFeedback("Archive is already active.", false); return; }
         try {
-            archiveManager.reactivateArchive(
-                    selected.getId(),
-                    getCurrentUserId(),
-                    selected.getName());
-            showFeedback("Archive '" + selected.getName()
-                    + "' reactivated!", true);
+            archiveManager.reactivateArchive(selected.getId(), getCurrentUserId(), selected.getName());
+            showFeedback("Archive '" + selected.getName() + "' reactivated!", true);
             loadArchives();
         } catch (Exception e) {
             showFeedback("Could not reactivate: " + e.getMessage(), false);
@@ -196,7 +202,7 @@ public class ArchiveController {
 
     private void showFeedback(String message, boolean success) {
         feedbackLabel.setText(message);
-        feedbackLabel.setTextFill(
-                success ? Color.web("#2ECC9A") : Color.web("#E53E3E"));
+        feedbackLabel.getStyleClass().removeAll("feedback-success", "feedback-error");
+        feedbackLabel.getStyleClass().add(success ? "feedback-success" : "feedback-error");
     }
 }

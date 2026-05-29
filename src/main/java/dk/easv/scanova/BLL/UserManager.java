@@ -32,8 +32,8 @@ public class UserManager {
         validateUsername(username);
         validatePassword(password);
         validateRole(role);
-        userDAO.createUser(new User(username,
-                PasswordUtil.hash(password), role));
+        String hashed = PasswordUtil.hash(password);
+        userDAO.createUser(new User(username, hashed, role));
     }
 
     public void updateUser(int id, String username, String newPassword,
@@ -41,7 +41,8 @@ public class UserManager {
         validateUsername(username);
         validateRole(role);
 
-        User existing = userDAO.getAllUsersIncludingInactive().stream()
+        List<User> all = userDAO.getAllUsersIncludingInactive();
+        User existing = all.stream()
                 .filter(u -> u.getId() == id)
                 .findFirst()
                 .orElseThrow(() -> new Exception("User not found: " + id));
@@ -68,6 +69,8 @@ public class UserManager {
         userDAO.reactivateUser(userId);
     }
 
+    // Validation
+
     private void validateUsername(String u) throws Exception {
         if (u == null || u.isBlank())
             throw new Exception("Username cannot be empty.");
@@ -80,8 +83,18 @@ public class UserManager {
     private void validatePassword(String p) throws Exception {
         if (p == null || p.isBlank())
             throw new Exception("Password cannot be empty.");
-        if (p.length() < 6)
-            throw new Exception("Password must be at least 6 characters.");
+        if (p.length() < 8)
+            throw new Exception("Password must be at least 8 characters.");
+        if (!p.matches(".*[A-Z].*"))
+            throw new Exception(
+                    "Password must contain at least one uppercase letter.");
+        if (!p.matches(".*[0-9].*"))
+            throw new Exception(
+                    "Password must contain at least one number.");
+        if (!p.matches(".*[!@#$%^&*()_+\\-=\\[\\]{}|;:,.<>?].*"))
+            throw new Exception(
+                    "Password must contain at least one special character "
+                            + "(!@#$%^&* etc.).");
     }
 
     private void validateRole(String r) throws Exception {

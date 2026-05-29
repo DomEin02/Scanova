@@ -24,7 +24,7 @@ public class CaseDAO {
         throw new Exception("Could not create case for box: " + boxId);
     }
 
-    // ── Get cases scanned by this user — queries through pages table ──────────
+    // Get cases scanned by this user — queries through pages table
     public List<String[]> getCasesForUser(int userId) throws Exception {
         String sql = "SELECT DISTINCT c.id, c.title, b.label, c.status " +
                 "FROM cases c " +

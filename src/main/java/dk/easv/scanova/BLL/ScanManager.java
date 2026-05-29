@@ -21,10 +21,10 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 public class ScanManager {
 
-    // ── DAL dependencies ──────────────────────────────────────────────────────
     private final ScannerClient scannerClient = new ScannerClient();
     private final BoxDAO        boxDAO        = new BoxDAO();
     private final CaseDAO       caseDAO       = new CaseDAO();
@@ -33,7 +33,6 @@ public class ScanManager {
     private final PageDAO       pageDAO       = new PageDAO();
     private final ProfileDAO    profileDAO    = new ProfileDAO();
 
-    // ── In-memory state ───────────────────────────────────────────────────────
     private final List<Document>        documents     = new ArrayList<>();
     private final Map<Integer, Integer> documentIdMap = new HashMap<>();
 
@@ -46,7 +45,7 @@ public class ScanManager {
     private Box    activeBox;
     private String currentBoxId = "UNKNOWN";
 
-    // ── Validate box and profile before scanning ──────────────────────────────
+    // Validate box and profile before session
     public Box validateAndPrepareSession(String boxLabel,
                                          String profileName) throws Exception {
         Box box = boxDAO.getBoxByLabel(boxLabel);
@@ -57,14 +56,14 @@ public class ScanManager {
 
         if (boxDAO.isCombinationAlreadyUsed(box.getId(), profileId))
             throw new Exception(
-                    "Box '" + boxLabel + "' has already been scanned " +
-                            "with profile '" + profileName + "'. " +
-                            "Please choose a different box or profile.");
+                    "Box '" + boxLabel + "' has already been scanned "
+                            + "with profile '" + profileName + "'. "
+                            + "Please choose a different box or profile.");
 
         return box;
     }
 
-    // ── Init session with real box ────────────────────────────────────────────
+    // Init session with box
     public void initSession(Box box) throws Exception {
         this.activeBox    = box;
         this.currentBoxId = box.getLabel();
@@ -76,8 +75,7 @@ public class ScanManager {
         documentIdMap.clear();
 
         activeCaseId = caseDAO.createCase(
-                box.getId(),
-                "Scan of " + box.getLabel());
+                box.getId(), "Scan of " + box.getLabel());
 
         System.out.println("Session started — Box: " + box.getLabel()
                 + " | Profile: " + box.getProfileName()
@@ -86,21 +84,7 @@ public class ScanManager {
                 + " | Files: " + totalAvailable);
     }
 
-    // ── Init session without box — fallback ───────────────────────────────────
-    public void initSession() throws Exception {
-        totalAvailable   = scannerClient.getTotalCount();
-        fileIdCounter    = 0;
-        referenceCounter = 0;
-        documentCounter  = 0;
-        documents.clear();
-        documentIdMap.clear();
-        activeCaseId = -1;
-        activeBox    = null;
-        currentBoxId = "UNKNOWN";
-        System.out.println("Session started (no box). Files: " + totalAvailable);
-    }
-
-    // ── Fetch next file from API ──────────────────────────────────────────────
+    // Fetch next file from API
     public List<ScannedFile> fetchNext() throws Exception {
         if (!hasMore()) return null;
 
@@ -108,10 +92,8 @@ public class ScanManager {
         List<byte[]> tiffs = scannerClient.fetchTiffsById(referenceCounter);
         List<ScannedFile> result = new ArrayList<>();
 
-        // Get profile rotation to auto-apply to every file
         int profileRotation = (activeBox != null)
-                ? (int) activeBox.getRotation()
-                : 0;
+                ? (int) activeBox.getRotation() : 0;
 
         for (byte[] data : tiffs) {
             if (isBarcode(data)) {
@@ -122,11 +104,9 @@ public class ScanManager {
                 if (activeCaseId != -1) {
                     try {
                         int realDocId = documentDAO.createDocument(
-                                activeCaseId,
-                                "Document " + documentCounter);
+                                activeCaseId, "Document " + documentCounter);
                         documentIdMap.put(documentCounter, realDocId);
-                        System.out.println("  → DB document created: "
-                                + realDocId);
+                        System.out.println("  → DB document created: " + realDocId);
                     } catch (Exception e) {
                         System.out.println("  → Could not create DB document: "
                                 + e.getMessage());
@@ -158,14 +138,13 @@ public class ScanManager {
         return result;
     }
 
-    // ── Save file to both files and pages tables ──────────────────────────────
+    // Save file to files + pages tables
     private void saveFileToDB(ScannedFile file, boolean barcodeDetected) {
         try {
             int realDocId = documentIdMap.getOrDefault(
                     file.getDocumentId(), -1);
 
             if (realDocId != -1) {
-                // Save to files table
                 try {
                     int dbFileId = fileDAO.insertFile(
                             file, realDocId, barcodeDetected);
@@ -175,7 +154,6 @@ public class ScanManager {
                             + e.getMessage());
                 }
 
-                // Also save to pages table — used by scan history
                 try {
                     pageDAO.insertPageWithDocumentId(file, realDocId);
                 } catch (Exception e) {
@@ -191,17 +169,24 @@ public class ScanManager {
         }
     }
 
-    // ── Get profiles for current user ─────────────────────────────────────────
+    // Get profiles assigned to current user
     public List<String> getProfilesForCurrentUser(int userId) throws Exception {
         return profileDAO.getProfilesForUser(userId);
     }
 
-    // ── Get real DB document id by in-memory document number ──────────────────
+    // Get all available box labels (for session popup dropdown)
+    public List<String> getAvailableBoxLabels() throws Exception {
+        return boxDAO.getAllBoxes().stream()
+                .map(Box::getLabel)
+                .collect(Collectors.toList());
+    }
+
+    // Get real DB document id by in-memory document number
     public int getRealDocumentId(int docNumber) {
         return documentIdMap.getOrDefault(docNumber, -1);
     }
 
-    // ── Barcode detection ─────────────────────────────────────────────────────
+    // Barcode detection
     private boolean isBarcode(byte[] data) {
         try {
             BufferedImage image = ImageIO.read(new ByteArrayInputStream(data));
@@ -214,13 +199,12 @@ public class ScanManager {
         } catch (NotFoundException e) {
             return false;
         } catch (Exception e) {
-            System.out.println("  → Could not check barcode: "
-                    + e.getMessage());
+            System.out.println("  → Could not check barcode: " + e.getMessage());
             return false;
         }
     }
 
-    // ── Getters ───────────────────────────────────────────────────────────────
+    // Getters
     public boolean hasMore() {
         return referenceCounter < totalAvailable;
     }
@@ -233,7 +217,6 @@ public class ScanManager {
     public List<Document> getAllDocuments()  { return documents; }
     public int getTotalFilesFetched()        { return fileIdCounter; }
     public int getTotalAvailable()           { return totalAvailable; }
-    public int getCurrentDocumentNumber()    { return documentCounter; }
     public int getActiveCaseId()             { return activeCaseId; }
     public Box getActiveBox()                { return activeBox; }
 }

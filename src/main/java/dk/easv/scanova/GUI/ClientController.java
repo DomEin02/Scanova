@@ -8,18 +8,19 @@ import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
 import javafx.scene.control.*;
-import javafx.scene.paint.Color;
+import javafx.scene.layout.HBox;
 
 public class ClientController {
 
     @FXML private TableView<Client>           clientTable;
     @FXML private TableColumn<Client, String> colClientName;
     @FXML private TableColumn<Client, String> colClientStatus;
-    @FXML private TextField                   usernameField;
-    @FXML private Label                       feedbackLabel;
-    @FXML private Button                      saveButton;
-    @FXML private Label                       formTitle;
     @FXML private Label                       clientCountBadge;
+
+    @FXML private Label     formTitle;
+    @FXML private TextField usernameField;   // client name field (fx:id from FXML)
+    @FXML private Label     feedbackLabel;
+    @FXML private Button    saveButton;
 
     private final ClientManager clientManager = new ClientManager();
     private Client clientBeingEdited = null;
@@ -36,25 +37,59 @@ public class ClientController {
 
         if (colClientStatus != null) {
             colClientStatus.setCellValueFactory(data ->
-                    new SimpleStringProperty(
-                            data.getValue().isActive() ? "Active" : "Inactive"));
+                    new SimpleStringProperty(data.getValue().isActive() ? "Active" : "Inactive"));
             colClientStatus.setCellFactory(col -> new TableCell<>() {
                 @Override
                 protected void updateItem(String item, boolean empty) {
                     super.updateItem(item, empty);
+                    getStyleClass().removeAll("status-active", "status-inactive");
                     if (empty || item == null) {
                         setText(null);
-                        setStyle("");
                     } else if (item.equals("Active")) {
                         setText("Active");
-                        setStyle("-fx-text-fill: #2ECC9A; -fx-font-weight: bold;");
+                        getStyleClass().add("status-active");
                     } else {
                         setText("Inactive");
-                        setStyle("-fx-text-fill: #E53E3E; -fx-font-weight: bold;");
+                        getStyleClass().add("status-inactive");
                     }
                 }
             });
         }
+
+        // Inline action buttons per row
+        TableColumn<Client, Void> actionsCol = new TableColumn<>("Actions");
+        actionsCol.setPrefWidth(240);
+        actionsCol.setCellFactory(col -> new TableCell<>() {
+            private final Button editBtn       = new Button("Edit");
+            private final Button deactivateBtn = new Button("Deactivate");
+            private final Button reactivateBtn = new Button("Reactivate");
+            private final HBox   box           = new HBox(6, editBtn, deactivateBtn, reactivateBtn);
+            {
+                editBtn.getStyleClass().add("btn-row-edit");
+                deactivateBtn.getStyleClass().add("btn-row-danger");
+                reactivateBtn.getStyleClass().add("btn-row-reactivate");
+
+                editBtn.setOnAction(e -> {
+                    clientTable.getSelectionModel().select(getIndex());
+                    handleEditClient();
+                });
+                deactivateBtn.setOnAction(e -> {
+                    clientTable.getSelectionModel().select(getIndex());
+                    handleDeleteClient();
+                });
+                reactivateBtn.setOnAction(e -> {
+                    clientTable.getSelectionModel().select(getIndex());
+                    handleReactivateClient();
+                });
+            }
+
+            @Override
+            protected void updateItem(Void item, boolean empty) {
+                super.updateItem(item, empty);
+                setGraphic(empty ? null : box);
+            }
+        });
+        clientTable.getColumns().add(actionsCol);
 
         loadClients();
     }
@@ -62,8 +97,7 @@ public class ClientController {
     private void loadClients() {
         try {
             ObservableList<Client> clients =
-                    FXCollections.observableArrayList(
-                            clientManager.getAllClientsIncludingInactive());
+                    FXCollections.observableArrayList(clientManager.getAllClientsIncludingInactive());
             clientTable.setItems(clients);
             if (clientCountBadge != null)
                 clientCountBadge.setText(String.valueOf(
@@ -76,13 +110,13 @@ public class ClientController {
     @FXML
     private void handleSaveClient() {
         String name = usernameField.getText().trim();
+
         try {
             if (clientBeingEdited == null) {
                 clientManager.createClient(name, getCurrentUserId());
                 showFeedback("Client '" + name + "' created!", true);
             } else {
-                clientManager.updateClient(
-                        clientBeingEdited.getId(), name, getCurrentUserId());
+                clientManager.updateClient(clientBeingEdited.getId(), name, getCurrentUserId());
                 showFeedback("Client '" + name + "' updated!", true);
             }
             loadClients();
@@ -92,40 +126,28 @@ public class ClientController {
         }
     }
 
-    @FXML
     private void handleEditClient() {
         Client selected = clientTable.getSelectionModel().getSelectedItem();
-        if (selected == null) {
-            showFeedback("Please select a client to edit.", false);
-            return;
-        }
+        if (selected == null) { showFeedback("Please select a client to edit.", false); return; }
         clientBeingEdited = selected;
         usernameField.setText(selected.getName());
         formTitle.setText("Edit Client");
         saveButton.setText("Update Client");
         showFeedback("Editing: " + selected.getName(), true);
+        usernameField.requestFocus();
     }
 
-    @FXML
     private void handleDeleteClient() {
         Client selected = clientTable.getSelectionModel().getSelectedItem();
-        if (selected == null) {
-            showFeedback("Please select a client to deactivate.", false);
-            return;
-        }
-
+        if (selected == null) { showFeedback("Please select a client to deactivate.", false); return; }
         Alert confirm = new Alert(Alert.AlertType.CONFIRMATION);
         confirm.setTitle("Deactivate Client");
         confirm.setHeaderText("Deactivate '" + selected.getName() + "'?");
-        confirm.setContentText(
-                "The client will be deactivated and hidden from scanning.");
+        confirm.setContentText("The client will be deactivated. All associated archives must be deactivated first.");
         confirm.showAndWait().ifPresent(response -> {
             if (response == ButtonType.OK) {
                 try {
-                    clientManager.deleteClient(
-                            selected.getId(),
-                            getCurrentUserId(),
-                            selected.getName());
+                    clientManager.deleteClient(selected.getId(), getCurrentUserId(), selected.getName());
                     showFeedback("Client deactivated.", true);
                     loadClients();
                     handleClearForm();
@@ -136,22 +158,12 @@ public class ClientController {
         });
     }
 
-    @FXML
     private void handleReactivateClient() {
         Client selected = clientTable.getSelectionModel().getSelectedItem();
-        if (selected == null) {
-            showFeedback("Please select a client to reactivate.", false);
-            return;
-        }
-        if (selected.isActive()) {
-            showFeedback("Client is already active.", false);
-            return;
-        }
+        if (selected == null) { showFeedback("Please select a client to reactivate.", false); return; }
+        if (selected.isActive()) { showFeedback("Client is already active.", false); return; }
         try {
-            clientManager.reactivateClient(
-                    selected.getId(),
-                    getCurrentUserId(),
-                    selected.getName());
+            clientManager.reactivateClient(selected.getId(), getCurrentUserId(), selected.getName());
             showFeedback("Client '" + selected.getName() + "' reactivated!", true);
             loadClients();
         } catch (Exception e) {
@@ -160,17 +172,17 @@ public class ClientController {
     }
 
     @FXML
-    private void handleClearForm() {
+    public void handleClearForm() {
         clientBeingEdited = null;
         usernameField.clear();
-        formTitle.setText("Create New Client");
-        saveButton.setText("Create Client");
+        formTitle.setText("Create new client");
+        saveButton.setText("Create client");
         feedbackLabel.setText("");
     }
 
     private void showFeedback(String message, boolean success) {
         feedbackLabel.setText(message);
-        feedbackLabel.setTextFill(
-                success ? Color.web("#2ECC9A") : Color.web("#E53E3E"));
+        feedbackLabel.getStyleClass().removeAll("feedback-success", "feedback-error");
+        feedbackLabel.getStyleClass().add(success ? "feedback-success" : "feedback-error");
     }
 }

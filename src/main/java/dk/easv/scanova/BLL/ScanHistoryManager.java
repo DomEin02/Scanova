@@ -20,7 +20,8 @@ public class ScanHistoryManager {
     private final PageDAO       pageDAO       = new PageDAO();
     private final ScannerClient scannerClient = new ScannerClient();
 
-    // docNumber → real DB document id — used by ScanViewController.saveOrderToDB
+    // Maps in-memory docNumber - real DB document id
+    // Used by ScanViewController.saveOrderToDB() after history load
     private final Map<Integer, Integer> loadedDocumentIdMap = new HashMap<>();
 
     public List<String[]> getCasesForUser(int userId) throws Exception {
@@ -47,41 +48,41 @@ public class ScanHistoryManager {
             int documentId = Integer.parseInt(doc[0]);
             int docNumber  = docIndex + 1;
 
-            // Store real DB document id for reorder saving after load
+            // Store real document id so reorder can update pages table later
             loadedDocumentIdMap.put(docNumber, documentId);
 
             final int finalDocNumber = docNumber;
             Platform.runLater(() ->
                     sidebarItems.add(new SidebarItem(finalDocNumber)));
 
-            // Load pages ordered by order_id
             List<int[]> pages = pageDAO.getPagesByDocumentId(documentId);
             System.out.println("Loading doc " + docNumber
-                    + " — " + pages.size() + " pages");
+                    + " — " + pages.size() + " pages from DB");
 
             for (int[] page : pages) {
-                int referenceId = page[0]; // API reference id
-                int rotation    = page[1]; // saved rotation
+                int referenceId = page[0];
+                int rotation    = page[1];
 
                 try {
                     List<byte[]> tiffs =
                             scannerClient.fetchTiffsById(referenceId);
                     if (!tiffs.isEmpty()) {
-                        final int    fId   = inMemoryFileId;
-                        final int    fDoc  = docNumber;
-                        final int    fRot  = rotation;
-                        final int    fRef  = referenceId;
-                        final byte[] fData = tiffs.get(0);
+                        final int    fFileId = inMemoryFileId;
+                        final int    fDocNum = docNumber;
+                        final int    fRot    = rotation;
+                        final int    fRef    = referenceId;
+                        final byte[] fData   = tiffs.get(0);
 
                         Platform.runLater(() -> {
                             ScannedFile file = new ScannedFile(
-                                    fId, fRef, fData, fDoc);
+                                    fFileId, fRef, fData, fDocNum);
                             file.setRotation(fRot);
                             file.setDbFileId(-1);
                             sidebarItems.add(new SidebarItem(file));
                         });
                         inMemoryFileId++;
-                        System.out.println("  Loaded ref: " + referenceId);
+                        System.out.println("  Loaded ref: " + referenceId
+                                + " rotation: " + rotation);
                     }
                 } catch (Exception e) {
                     System.out.println("Could not load ref "

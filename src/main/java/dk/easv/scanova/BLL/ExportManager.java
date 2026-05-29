@@ -43,10 +43,9 @@ public class ExportManager {
 
             ScannedFile file = item.getFile();
 
-            List<byte[]> tiffs =
-                    scannerClient.fetchTiffsById(file.getReferenceId());
+            byte[] data = getFileBytes(file);
 
-            if (!tiffs.isEmpty()) {
+            if (data != null && data.length > 0) {
 
                 String fileName = String.format(
                         "document_%d_page_%d.tiff",
@@ -56,7 +55,7 @@ public class ExportManager {
 
                 File outputFile = new File(folder, fileName);
 
-                writeSinglePageTiff(tiffs.get(0), outputFile);
+                writeSinglePageTiff(data, outputFile);
 
                 if (file.getDbFileId() != -1) {
                     fileManager.updateFilePath(
@@ -100,13 +99,10 @@ public class ExportManager {
 
             for (SidebarItem item : pages) {
 
-                List<byte[]> tiffs =
-                        scannerClient.fetchTiffsById(
-                                item.getFile().getReferenceId()
-                        );
+                byte[] data = getFileBytes(item.getFile());
 
-                if (!tiffs.isEmpty()) {
-                    pageBytes.add(tiffs.get(0));
+                if (data != null && data.length > 0) {
+                    pageBytes.add(data);
                 }
             }
 
@@ -138,6 +134,23 @@ public class ExportManager {
         }
 
         return exported;
+    }
+
+    private byte[] getFileBytes(ScannedFile file) {
+        // Use image data already in memory — this is what's shown in the sidebar
+        if (file.getImageData() != null && file.getImageData().length > 0)
+            return file.getImageData();
+
+        // Fallback for history-loaded sessions only
+        try {
+            List<byte[]> tiffs = scannerClient.fetchTiffsById(
+                    file.getReferenceId());
+            if (!tiffs.isEmpty()) return tiffs.get(0);
+        } catch (Exception e) {
+            System.out.println("Could not fetch file "
+                    + file.getReferenceId() + ": " + e.getMessage());
+        }
+        return null;
     }
 
     private void writeSinglePageTiff(byte[] bytes,

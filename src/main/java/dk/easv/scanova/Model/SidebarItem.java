@@ -2,8 +2,8 @@ package dk.easv.scanova.Model;
 
 public class SidebarItem {
 
-    private final boolean    isHeader;
-    private final int        documentId;
+    private final boolean     isHeader;
+    private       int         documentId; // not final — updated on cross-doc moves
     private final ScannedFile file;
 
     // Header constructor
@@ -20,7 +20,12 @@ public class SidebarItem {
         this.file       = file;
     }
 
-    public boolean    isHeader()    { return isHeader; }
-    public int        getDocumentId() { return documentId; }
-    public ScannedFile getFile()    { return file; }
+    public boolean     isHeader()      { return isHeader; }
+    public int         getDocumentId() { return documentId; }
+    public ScannedFile getFile()       { return file; }
+
+    // Called when a file is dragged/moved to a different document
+    public void setDocumentId(int documentId) {
+        this.documentId = documentId;
+    }
 }

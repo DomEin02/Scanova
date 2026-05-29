@@ -9,7 +9,7 @@ import java.util.List;
 
 public class FileDAO {
 
-    // ── Save a scanned file to the files table ────────────────────────────────
+    // Save a scanned file to the files table
     public int insertFile(ScannedFile file,
                           int documentId,
                           boolean barcodeDetected) throws Exception {
@@ -52,7 +52,7 @@ public class FileDAO {
                 "Could not insert file for document: " + documentId);
     }
 
-    // ── Mark barcode detected — updates barcode_detected_at timestamp ─────────
+    // Mark barcode detected — updates barcode_detected_at timestamp
     public void markBarcodeDetected(int fileId) throws Exception {
         String sql = "UPDATE files " +
                 "SET barcode_detected = 1, barcode_detected_at = GETDATE() " +
@@ -65,7 +65,7 @@ public class FileDAO {
         }
     }
 
-    // ── Update file order after reorder ───────────────────────────────────────
+    // Update file order after reorder
     public void updateFileOrder(int dbFileId, int newOrder) throws Exception {
         String sql = "UPDATE files SET file_order_id = ? WHERE id = ?";
 
@@ -79,7 +79,7 @@ public class FileDAO {
         }
     }
 
-    // ── Update file path after export ─────────────────────────────────────────
+    // Update file path after export
     public void updateFilePath(int fileId, String filePath) throws Exception {
         String sql = "UPDATE files SET file_path = ? WHERE id = ?";
 
@@ -91,7 +91,7 @@ public class FileDAO {
         }
     }
 
-    // ── Update rotation ───────────────────────────────────────────────────────
+    // Update rotation
     public void updateRotation(int fileId, int rotation) throws Exception {
         String sql = "UPDATE files SET rotation = ? WHERE id = ?";
 
@@ -103,7 +103,7 @@ public class FileDAO {
         }
     }
 
-    // ── Get rotation ──────────────────────────────────────────────────────────
+    // Get rotation
     public int getRotation(int fileId) throws Exception {
         String sql = "SELECT rotation FROM files WHERE id = ?";
 
@@ -116,7 +116,7 @@ public class FileDAO {
         return 0;
     }
 
-    // ── Get all file ids for a document ───────────────────────────────────────
+    // Get all file ids for a document
     public List<Integer> getFileIdsByDocumentId(int documentId) throws Exception {
         String sql = "SELECT id FROM files WHERE document_id = ? " +
                 "ORDER BY file_order_id";
@@ -131,7 +131,7 @@ public class FileDAO {
         return ids;
     }
 
-    // ── Get files with full details for a document ────────────────────────────
+    // Get files with full details for a document
     public List<int[]> getFilesByDocumentId(int documentId) throws Exception {
         String sql = "SELECT id, file_reference_id, file_order_id, rotation " +
                 "FROM files " +

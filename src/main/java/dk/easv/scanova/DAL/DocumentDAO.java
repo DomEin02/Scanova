@@ -6,7 +6,7 @@ import java.util.List;
 
 public class DocumentDAO {
 
-    // ── Create document under a case — used by ScanManager ───────────────────
+    // Create document under a case — used by ScanManager
     public int createDocument(int caseId, String title) throws Exception {
         String sql = "INSERT INTO documents (case_id, title, status) " +
                 "OUTPUT INSERTED.id VALUES (?, ?, 'In Progress')";
@@ -26,7 +26,7 @@ public class DocumentDAO {
         throw new Exception("Could not create document for case: " + caseId);
     }
 
-    // ── Get documents for a case — used for history loading ──────────────────
+    // Get documents for a case — used for history loading
     public List<String[]> getDocumentsByCaseId(int caseId) throws Exception {
         String sql = "SELECT id, title, status FROM documents " +
                 "WHERE case_id = ? ORDER BY id";

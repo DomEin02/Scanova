@@ -2,9 +2,9 @@ package dk.easv.scanova.Model;
 
 public class ScannedFile {
 
-    private int    fileId;      // in-memory order id (1,2,3...)
-    private int    dbFileId;    // real id from files table in DB
-    private int    referenceId; // API reference id
+    private int    fileId;
+    private int    dbFileId;
+    private int    referenceId;
     private byte[] imageData;
     private int    rotation;
     private int    documentId;
@@ -26,9 +26,10 @@ public class ScannedFile {
     public int    getRotation()    { return rotation; }
     public int    getDocumentId()  { return documentId; }
 
-    public void setFileId(int id)   { this.fileId = id; }
-    public void setDbFileId(int id) { this.dbFileId = id; }
-    public void setRotation(int r)  { this.rotation = r; }
+    public void setFileId(int id)        { this.fileId = id; }
+    public void setDbFileId(int id)      { this.dbFileId = id; }
+    public void setRotation(int r)       { this.rotation = r; }
+    public void setDocumentId(int id)    { this.documentId = id; } // ← this one
 
     @Override
     public String toString() {

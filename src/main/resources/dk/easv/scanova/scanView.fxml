@@ -8,52 +8,48 @@
 
     <top>
         <ToolBar>
-            <Button text="Start Session" fx:id="startScanButton"
-                    onAction="#onStartScan"/>
+            <Button text="▶ Start Session (F5)" fx:id="startScanButton"
+                    onAction="#onStartScan"
+                    style="-fx-background-color: #2ECC9A; -fx-text-fill: white;
+                           -fx-font-weight: bold; -fx-background-radius: 5;"/>
+
             <Button text="Scan Next (F1)" fx:id="scanNextButton"
                     onAction="#onScanNext"
-                    style="-fx-background-color: #2ECC9A;
-                           -fx-text-fill: white;
-                           -fx-font-weight: bold;
-                           -fx-background-radius: 5;"/>
-            <Button text="Stop (F2)" fx:id="stopButton"
-                    onAction="#onStopScan"/>
-            <Button text="📂 Load Previous Scan"
-                    fx:id="loadPreviousButton"
+                    style="-fx-background-color: #1A7A5E; -fx-text-fill: white;
+                           -fx-font-weight: bold; -fx-background-radius: 5;"/>
+
+            <Button text="Stop (F2)" onAction="#onStopScan"/>
+
+            <Separator/>
+
+            <Button text="📂 Load Previous" fx:id="loadPreviousButton"
                     onAction="#onLoadPreviousScan"
-                    style="-fx-background-color: #4A6A8A;
-               -fx-text-fill: white;
-               -fx-font-weight: bold;
-               -fx-background-radius: 5;"/>
-            <Button text="Review Mode (F3)" onAction="#onOpenSlideshow"
-                    style="-fx-background-color: #1ABC9C;
-                           -fx-text-fill: white;
-                           -fx-font-weight: bold;
-                           -fx-background-radius: 5;"/>
-            <Separator />
-            <Button text="Export TIFF (F4)" fx:id="exportButton"
-                    onAction="#onExport"
-                    style="-fx-background-color: #7C3AED;
-               -fx-text-fill: white;
-               -fx-font-weight: bold;
-               -fx-background-radius: 5;
-               -fx-cursor: hand;"/>
-            <Separator />
-            <Label text="Profile:" />
-            <ComboBox fx:id="profileComboBox"/>
-            <Label text="Box ID" />
-            <TextField fx:id="boxIdField" prefWidth="100"
-                       focusTraversable="true"/>
-            <Separator />
-            <Label text="F1 Scan  F2 Stop  F3 Review  F4 Export  ↑↓ Navigate  Del Remove"
-                   style="-fx-text-fill: #888; -fx-font-size: 10;"/>
-            <Separator />
-            <Button text="Logout"
-                    onAction="#handleLogout"
-                    style="-fx-background-color: #EF4444;
-                           -fx-text-fill: white;
-                           -fx-font-weight: bold;
-                           -fx-background-radius: 5;
+                    style="-fx-background-color: #4A6A8A; -fx-text-fill: white;
+                           -fx-font-weight: bold; -fx-background-radius: 5;"/>
+
+            <Button text="Review (F3)" onAction="#onOpenSlideshow"
+                    style="-fx-background-color: #1ABC9C; -fx-text-fill: white;
+                           -fx-font-weight: bold; -fx-background-radius: 5;"/>
+
+            <Button text="Export TIFF (F4)" onAction="#onExport"
+                    style="-fx-background-color: #7C3AED; -fx-text-fill: white;
+                           -fx-font-weight: bold; -fx-background-radius: 5;"/>
+
+            <Separator/>
+
+            <Button text="Split (M)" onAction="#onManualSplit"
+                    style="-fx-background-color: #F6AD55; -fx-text-fill: white;
+                           -fx-font-weight: bold; -fx-background-radius: 5;"/>
+
+            <Button text="Merge (G)" onAction="#onMergeDocument"
+                    style="-fx-background-color: #4A90D9; -fx-text-fill: white;
+                           -fx-font-weight: bold; -fx-background-radius: 5;"/>
+
+            <Separator/>
+
+            <Button text="Logout" onAction="#handleLogout"
+                    style="-fx-background-color: #EF4444; -fx-text-fill: white;
+                           -fx-font-weight: bold; -fx-background-radius: 5;
                            -fx-cursor: hand;"/>
         </ToolBar>
     </top>
@@ -64,10 +60,9 @@
                    style="-fx-font-weight: bold; -fx-font-size: 13;"/>
             <ListView fx:id="fileListView" VBox.vgrow="ALWAYS"/>
             <HBox spacing="5">
-                <Button text="↑" fx:id="moveUpButton" onAction="#onMoveUp"/>
-                <Button text="↓" fx:id="moveDownButton" onAction="#onMoveDown"/>
-                <Button text="Delete" fx:id="deleteButton"
-                        onAction="#onDeleteFile"/>
+                <Button text="↑" onAction="#onMoveUp"/>
+                <Button text="↓" onAction="#onMoveDown"/>
+                <Button text="Delete" onAction="#onDeleteFile"/>
             </HBox>
         </VBox>
     </left>
@@ -81,12 +76,15 @@
     </center>
 
     <bottom>
-        <HBox spacing="30"
-              style="-fx-padding: 8; -fx-background-color: #f0f0f0;">
-            <Label fx:id="scanCountLabel" text="Scans: 0 / 0"/>
-            <Label fx:id="documentCountLabel" text="Documents: 0"/>
-            <Label fx:id="statusLabel" text="Status: Ready"/>
-        </HBox>
+        <VBox style="-fx-background-color: #f0f0f0;">
+            <HBox spacing="30" style="-fx-padding: 8;">
+                <Label fx:id="scanCountLabel"    text="Scans: 0 / 0"/>
+                <Label fx:id="documentCountLabel" text="Documents: 0"/>
+                <Label fx:id="statusLabel"        text="Status: Ready — press F5 to start"/>
+            </HBox>
+            <Label styleClass="shortcut-bar"
+                   text="F1 Scan Next  F2 Stop  F3 Review  F4 Export  F5 New Session  M Split  G Merge  ↑↓ Move  Del Remove"/>
+        </VBox>
     </bottom>
 
 </BorderPane>
